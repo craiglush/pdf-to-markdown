@@ -92,9 +92,7 @@ async def health_check() -> dict:
     return {
         "status": "healthy",
         "version": __version__,
-        "converters": {
-            k.value: v for k, v in available_converters.items()
-        },
+        "converters": available_converters,
     }
 
 
@@ -483,15 +481,17 @@ async def list_converters() -> dict:
     orchestrator = ConversionOrchestrator()
     available = orchestrator.list_available_converters()
 
-    return {
-        "converters": {
-            k.value: {
-                "available": v,
-                "info": orchestrator.get_converter_info(k) if v else "Not available",
+    # Restructure the nested dictionary to include converter info
+    converters = {}
+    for file_type, strategies in available.items():
+        converters[file_type] = {}
+        for strategy, is_available in strategies.items():
+            converters[file_type][strategy] = {
+                "available": is_available,
+                "info": orchestrator.get_converter_info(file_type, strategy) if is_available else "Not available",
             }
-            for k, v in available.items()
-        }
-    }
+
+    return {"converters": converters}
 
 
 if __name__ == "__main__":

@@ -475,14 +475,16 @@ def check() -> None:
 
     # Create status table
     table = Table(title="Converter Availability")
-    table.add_column("Strategy", style="cyan")
+    table.add_column("File Type", style="cyan")
+    table.add_column("Strategy", style="yellow")
     table.add_column("Status", style="white")
     table.add_column("Details", style="dim")
 
-    for strategy, is_available in available.items():
-        status = "[green]✓ Available[/green]" if is_available else "[red]✗ Not Available[/red]"
-        details = orchestrator.get_converter_info(strategy) if is_available else "Missing dependencies"
-        table.add_row(strategy.value, status, details)
+    for file_type, strategies in available.items():
+        for strategy, is_available in strategies.items():
+            status = "[green]✓ Available[/green]" if is_available else "[red]✗ Not Available[/red]"
+            details = orchestrator.get_converter_info(file_type, strategy) if is_available else "Missing dependencies"
+            table.add_row(file_type.upper(), strategy, status, details)
 
     console.print(table)
 
