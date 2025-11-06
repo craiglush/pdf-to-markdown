@@ -44,6 +44,10 @@ class ConversionRequest(BaseModel):
     # DOCX-specific options
     docx_include_comments: bool = False
     docx_include_headers_footers: bool = False
+    # XLSX-specific options
+    xlsx_mode: str = "combined"
+    xlsx_sheets: Optional[list[str]] = None
+    xlsx_extract_charts: bool = True
 
 
 class ConversionResponse(BaseModel):
@@ -108,6 +112,9 @@ async def convert_document(
     html_base_url: Optional[str] = None,
     docx_include_comments: bool = False,
     docx_include_headers_footers: bool = False,
+    xlsx_mode: str = "combined",
+    xlsx_sheets: Optional[str] = None,
+    xlsx_extract_charts: bool = True,
 ) -> ConversionResponse:
     """
     Convert a document file to Markdown.
@@ -127,6 +134,9 @@ async def convert_document(
         html_base_url: Base URL for resolving relative links in HTML
         docx_include_comments: Include comments and tracked changes in DOCX
         docx_include_headers_footers: Include headers and footers from DOCX
+        xlsx_mode: Multi-sheet handling (combined, separate, selected)
+        xlsx_sheets: Comma-separated sheet names for 'selected' mode
+        xlsx_extract_charts: Extract charts as images from XLSX
 
     Returns:
         ConversionResponse with markdown content
@@ -147,6 +157,11 @@ async def convert_document(
             tmp_file.write(content)
             tmp_path = Path(tmp_file.name)
 
+        # Parse XLSX sheets if provided
+        xlsx_sheets_list = None
+        if xlsx_sheets:
+            xlsx_sheets_list = [s.strip() for s in xlsx_sheets.split(',')]
+
         # Create configuration
         config = Config(
             strategy=ConversionStrategy(strategy),
@@ -162,6 +177,10 @@ async def convert_document(
             # DOCX-specific options
             docx_include_comments=docx_include_comments,
             docx_include_headers_footers=docx_include_headers_footers,
+            # XLSX-specific options
+            xlsx_mode=xlsx_mode,
+            xlsx_sheets=xlsx_sheets_list,
+            xlsx_extract_charts=xlsx_extract_charts,
         )
 
         # Convert
@@ -199,6 +218,9 @@ async def convert_document_async(
     html_base_url: Optional[str] = None,
     docx_include_comments: bool = False,
     docx_include_headers_footers: bool = False,
+    xlsx_mode: str = "combined",
+    xlsx_sheets: Optional[str] = None,
+    xlsx_extract_charts: bool = True,
 ) -> JobStatusResponse:
     """
     Start an asynchronous document conversion job.
@@ -217,6 +239,9 @@ async def convert_document_async(
         html_base_url: Base URL for resolving relative links in HTML
         docx_include_comments: Include comments and tracked changes in DOCX
         docx_include_headers_footers: Include headers and footers from DOCX
+        xlsx_mode: Multi-sheet handling (combined, separate, selected)
+        xlsx_sheets: Comma-separated sheet names for 'selected' mode
+        xlsx_extract_charts: Extract charts as images from XLSX
 
     Returns:
         Job status response with job ID
@@ -262,6 +287,9 @@ async def convert_document_async(
         html_base_url,
         docx_include_comments,
         docx_include_headers_footers,
+        xlsx_mode,
+        xlsx_sheets,
+        xlsx_extract_charts,
     )
 
     return JobStatusResponse(
@@ -284,6 +312,9 @@ async def process_conversion(
     html_base_url: Optional[str] = None,
     docx_include_comments: bool = False,
     docx_include_headers_footers: bool = False,
+    xlsx_mode: str = "combined",
+    xlsx_sheets: Optional[str] = None,
+    xlsx_extract_charts: bool = True,
 ) -> None:
     """
     Background task to process document conversion.
@@ -300,12 +331,20 @@ async def process_conversion(
         html_base_url: Base URL for resolving relative links in HTML
         docx_include_comments: Include comments and tracked changes in DOCX
         docx_include_headers_footers: Include headers and footers from DOCX
+        xlsx_mode: Multi-sheet handling (combined, separate, selected)
+        xlsx_sheets: Comma-separated sheet names for 'selected' mode
+        xlsx_extract_charts: Extract charts as images from XLSX
     """
     try:
         # Update status
         conversion_jobs[job_id]["status"] = "processing"
         conversion_jobs[job_id]["progress"] = 0.1
         conversion_jobs[job_id]["message"] = "Converting document..."
+
+        # Parse XLSX sheets if provided
+        xlsx_sheets_list = None
+        if xlsx_sheets:
+            xlsx_sheets_list = [s.strip() for s in xlsx_sheets.split(',')]
 
         # Create configuration
         config = Config(
@@ -318,6 +357,9 @@ async def process_conversion(
             html_base_url=html_base_url,
             docx_include_comments=docx_include_comments,
             docx_include_headers_footers=docx_include_headers_footers,
+            xlsx_mode=xlsx_mode,
+            xlsx_sheets=xlsx_sheets_list,
+            xlsx_extract_charts=xlsx_extract_charts,
         )
 
         # Convert

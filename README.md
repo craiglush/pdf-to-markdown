@@ -11,7 +11,7 @@ A high-fidelity document to Markdown converter with support for **PDF**, **HTML*
 - 📄 **PDF**: Fast conversion (0.12s/page), OCR for scanned documents, multi-column layouts
 - 🌐 **HTML**: External image download, relative link resolution, semantic tag preservation
 - 📝 **DOCX**: Dual converter (pypandoc + mammoth fallback), formatting preservation, table extraction
-- 📊 **XLSX**: Spreadsheets, charts, multi-sheet support *(coming in Phase 4)*
+- 📊 **XLSX**: Spreadsheet conversion with pandas, multi-sheet handling, chart extraction
 
 ### Core Capabilities
 - ✅ **Fast Conversion**: 0.12s per page with PyMuPDF4LLM
@@ -209,6 +209,12 @@ Options:
   --docx-include-headers-footers / --docx-no-include-headers-footers
                               Include headers and footers (default: False)
 
+  # XLSX-specific options
+  --xlsx-mode TEXT            Multi-sheet handling: combined, separate, or selected (default: combined)
+  --xlsx-sheets TEXT          Comma-separated list of sheet names for 'selected' mode
+  --xlsx-extract-charts / --xlsx-no-extract-charts
+                              Extract charts as images (default: True)
+
   -v, --verbose               Verbose output
   --help                      Show this message and exit
 ```
@@ -339,6 +345,55 @@ pip install -e ".[docx]"
 ```
 
 **Note**: pypandoc requires the pandoc system package. If pandoc is not installed, the converter automatically falls back to mammoth.
+
+### XLSX to Markdown Conversion
+
+Convert Excel spreadsheets with powerful multi-sheet handling:
+
+```bash
+# Basic XLSX conversion (combines all sheets)
+pdf2md convert spreadsheet.xlsx -o output.md
+
+# Separate mode: Each sheet as its own section
+pdf2md convert workbook.xlsx -o output.md --xlsx-mode separate
+
+# Selected mode: Convert specific sheets only
+pdf2md convert workbook.xlsx --xlsx-mode selected --xlsx-sheets "Sheet1,Sheet3"
+
+# Extract charts as images
+pdf2md convert report.xlsx --xlsx-extract-charts
+
+# Combine options
+pdf2md convert financial.xlsx --xlsx-mode combined --images embed
+```
+
+**XLSX Conversion Features:**
+- ✅ Multi-sheet handling (combined, separate, selected)
+- ✅ Table conversion with pandas (supports all table formats)
+- ✅ Chart extraction as images using openpyxl
+- ✅ Embedded image extraction
+- ✅ Wide table handling (auto-truncation for readability)
+- ✅ Formula display support
+- ✅ Metadata extraction (author, title, creation date)
+- ✅ Support for .xlsx, .xls, and .xlsm formats
+
+**Multi-Sheet Modes:**
+- **combined**: All sheets in one document with headers
+- **separate**: Each sheet as a separate section
+- **selected**: Only specific sheets (use --xlsx-sheets)
+
+**Installation:**
+```bash
+# Install XLSX conversion dependencies
+pip install -r requirements-xlsx.txt
+
+# Or install with optional XLSX support
+pip install -e ".[xlsx]"
+
+# Dependencies: pandas, openpyxl, Pillow
+```
+
+**Note**: pandas and openpyxl are required for XLSX conversion. Install them to enable this feature.
 
 ### Batch Processing
 

@@ -104,6 +104,22 @@ def convert(
         "--docx-include-headers-footers/--docx-no-include-headers-footers",
         help="Include headers and footers from DOCX",
     ),
+    # XLSX-specific options
+    xlsx_mode: str = typer.Option(
+        "combined",
+        "--xlsx-mode",
+        help="Multi-sheet handling: combined, separate, or selected",
+    ),
+    xlsx_sheets: Optional[str] = typer.Option(
+        None,
+        "--xlsx-sheets",
+        help="Comma-separated list of sheet names to convert (for 'selected' mode)",
+    ),
+    xlsx_extract_charts: bool = typer.Option(
+        True,
+        "--xlsx-extract-charts/--xlsx-no-extract-charts",
+        help="Extract charts as images from XLSX",
+    ),
     verbose: bool = typer.Option(
         False,
         "--verbose",
@@ -121,11 +137,18 @@ def convert(
         pdf2md convert page.html -o output.md --html-base-url https://example.com
         pdf2md convert report.docx -o output.md
         pdf2md convert document.docx --docx-include-comments
+        pdf2md convert spreadsheet.xlsx -o output.md --xlsx-mode combined
+        pdf2md convert workbook.xlsx --xlsx-sheets "Sheet1,Sheet3" --xlsx-mode selected
     """
     try:
         # Determine output path
         if output_file is None:
             output_file = input_file.with_suffix('.md')
+
+        # Parse XLSX sheets if provided
+        xlsx_sheets_list = None
+        if xlsx_sheets:
+            xlsx_sheets_list = [s.strip() for s in xlsx_sheets.split(',')]
 
         # Create configuration
         config = Config(
@@ -143,6 +166,10 @@ def convert(
             # DOCX-specific options
             docx_include_comments=docx_include_comments,
             docx_include_headers_footers=docx_include_headers_footers,
+            # XLSX-specific options
+            xlsx_mode=xlsx_mode,
+            xlsx_sheets=xlsx_sheets_list,
+            xlsx_extract_charts=xlsx_extract_charts,
         )
 
         # Create orchestrator and convert
@@ -469,7 +496,8 @@ def check() -> None:
         "pypandoc": "DOCX to Markdown conversion (primary)",
         "mammoth": "DOCX to Markdown conversion (fallback)",
         "python-docx": "DOCX metadata and image extraction",
-        "pandas": "XLSX to Markdown conversion",
+        "pandas": "XLSX to Markdown conversion (required)",
+        "openpyxl": "XLSX advanced features (charts, images)",
         "streamlit": "Web UI interface",
         "fastapi": "REST API server",
         "marker-pdf": "High-accuracy AI converter (PDFs)",

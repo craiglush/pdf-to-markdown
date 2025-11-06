@@ -126,6 +126,29 @@ def main() -> None:
             help="Include headers and footers from DOCX"
         )
 
+        st.subheader("XLSX Options")
+        xlsx_mode = st.selectbox(
+            "Multi-Sheet Handling",
+            options=["combined", "separate", "selected"],
+            index=0,
+            help="combined: All sheets in one document\n"
+                 "separate: Each sheet as a section\n"
+                 "selected: Only specific sheets"
+        )
+
+        xlsx_sheets = st.text_input(
+            "Sheet Names (comma-separated)",
+            value="",
+            help="For 'selected' mode: e.g., 'Sheet1,Sheet3'",
+            disabled=(xlsx_mode != "selected")
+        )
+
+        xlsx_extract_charts = st.checkbox(
+            "Extract Charts",
+            value=True,
+            help="Extract charts as images from XLSX"
+        )
+
         st.markdown("---")
         st.markdown("### About")
         st.markdown(
@@ -133,7 +156,7 @@ def main() -> None:
             "- **PDF:** Complex tables, images, OCR for scanned PDFs\n"
             "- **HTML:** External images, relative links, semantic tags\n"
             "- **DOCX:** Formatting, tables, images (pypandoc or mammoth)\n"
-            "- **XLSX:** Spreadsheets, charts (coming in Phase 4)"
+            "- **XLSX:** Multi-sheet spreadsheets, charts, embedded images"
         )
 
     # Main content area
@@ -171,6 +194,9 @@ def main() -> None:
                     html_base_url=html_base_url or None,
                     docx_include_comments=docx_include_comments,
                     docx_include_headers_footers=docx_include_headers_footers,
+                    xlsx_mode=xlsx_mode,
+                    xlsx_sheets=xlsx_sheets or None,
+                    xlsx_extract_charts=xlsx_extract_charts,
                 )
 
                 if result:
@@ -305,6 +331,9 @@ def convert_document(
     html_base_url: Optional[str],
     docx_include_comments: bool,
     docx_include_headers_footers: bool,
+    xlsx_mode: str,
+    xlsx_sheets: Optional[str],
+    xlsx_extract_charts: bool,
 ) -> Optional[ConversionResult]:
     """
     Convert uploaded document file.
@@ -323,6 +352,9 @@ def convert_document(
         html_base_url: Base URL for resolving relative links in HTML
         docx_include_comments: Include comments and tracked changes in DOCX
         docx_include_headers_footers: Include headers and footers from DOCX
+        xlsx_mode: Multi-sheet handling (combined, separate, selected)
+        xlsx_sheets: Comma-separated sheet names for 'selected' mode
+        xlsx_extract_charts: Extract charts as images from XLSX
 
     Returns:
         ConversionResult or None if error
@@ -335,6 +367,11 @@ def convert_document(
         with tempfile.NamedTemporaryFile(delete=False, suffix=file_ext) as tmp_file:
             tmp_file.write(uploaded_file.getvalue())
             tmp_path = Path(tmp_file.name)
+
+        # Parse XLSX sheets if provided
+        xlsx_sheets_list = None
+        if xlsx_sheets:
+            xlsx_sheets_list = [s.strip() for s in xlsx_sheets.split(',')]
 
         # Create configuration
         config = Config(
@@ -350,6 +387,9 @@ def convert_document(
             html_base_url=html_base_url,
             docx_include_comments=docx_include_comments,
             docx_include_headers_footers=docx_include_headers_footers,
+            xlsx_mode=xlsx_mode,
+            xlsx_sheets=xlsx_sheets_list,
+            xlsx_extract_charts=xlsx_extract_charts,
         )
 
         # Convert
