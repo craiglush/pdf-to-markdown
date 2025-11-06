@@ -4,7 +4,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -199,9 +199,27 @@ class Config(BaseModel):
         description="Maximum number of columns per sheet"
     )
 
-    class Config:
-        """Pydantic configuration."""
-        use_enum_values = True
+    # Validators to ensure enum fields are properly coerced from strings
+    @field_validator('strategy', mode='before')
+    @classmethod
+    def validate_strategy(cls, v):
+        if isinstance(v, str):
+            return ConversionStrategy(v)
+        return v
+
+    @field_validator('image_mode', mode='before')
+    @classmethod
+    def validate_image_mode(cls, v):
+        if isinstance(v, str):
+            return ImageMode(v)
+        return v
+
+    @field_validator('table_format', mode='before')
+    @classmethod
+    def validate_table_format(cls, v):
+        if isinstance(v, str):
+            return TableFormat(v)
+        return v
 
 
 class AppSettings(BaseSettings):
