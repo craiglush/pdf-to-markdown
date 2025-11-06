@@ -14,10 +14,30 @@ from pdf2markdown.core.orchestrator import ConversionOrchestrator
 
 app = typer.Typer(
     name="pdf2md",
-    help="Convert documents (PDF, HTML, DOCX, XLSX) to Markdown with high fidelity",
+    help="Convert 13+ document formats to Markdown powered by Microsoft MarkItDown (v2.0)",
     add_completion=True,
 )
 console = Console()
+
+# Version display
+def version_callback(value: bool):
+    if value:
+        console.print(f"pdf2md version {__version__}")
+        console.print("Powered by Microsoft MarkItDown")
+        raise typer.Exit()
+
+@app.callback()
+def main(
+    version: bool = typer.Option(
+        None,
+        "--version",
+        callback=version_callback,
+        is_eager=True,
+        help="Show version and exit"
+    )
+):
+    """Multi-format document to Markdown converter (v2.0)."""
+    pass
 
 
 @app.command()
@@ -120,6 +140,32 @@ def convert(
         "--xlsx-extract-charts/--xlsx-no-extract-charts",
         help="Extract charts as images from XLSX",
     ),
+    # MarkItDown v2.0 options
+    use_markitdown: bool = typer.Option(
+        True,
+        "--markitdown/--legacy",
+        help="Use MarkItDown converter (default) or legacy converters",
+    ),
+    rich_conversion: bool = typer.Option(
+        False,
+        "--rich-metadata/--simple",
+        help="Extract detailed metadata using format-specific libraries (slower)",
+    ),
+    llm_descriptions: bool = typer.Option(
+        False,
+        "--llm-descriptions",
+        help="Enable LLM-powered image descriptions (requires OPENAI_API_KEY)",
+    ),
+    llm_model: str = typer.Option(
+        "gpt-4o",
+        "--llm-model",
+        help="OpenAI model for image descriptions (gpt-4o, gpt-4-turbo, etc.)",
+    ),
+    azure_docintel: bool = typer.Option(
+        False,
+        "--azure",
+        help="Use Azure Document Intelligence for high-accuracy PDFs (requires Azure credentials)",
+    ),
     verbose: bool = typer.Option(
         False,
         "--verbose",
@@ -128,17 +174,45 @@ def convert(
     ),
 ) -> None:
     """
-    Convert a document file to Markdown format.
+    Convert documents to Markdown format.
 
-    Supports: PDF, HTML, DOCX, XLSX
+    Supports 13+ formats:
+    - Documents: PDF, DOCX, XLSX, PPTX
+    - Web: HTML
+    - Images: JPG, PNG, GIF, BMP, TIFF, WebP (with OCR)
+    - Audio: WAV, MP3, M4A (with transcription)
+    - E-books: EPub
+    - Data: JSON, XML, CSV
+    - Archives: ZIP
+    - Email: MSG (Outlook)
+
+    v2.0 Features:
+    - LLM-powered image descriptions (--llm-descriptions)
+    - Azure Document Intelligence for PDFs (--azure)
+    - Rich metadata extraction (--rich-metadata)
 
     Examples:
+        # PDF conversion
         pdf2md convert document.pdf -o output.md --images embed
-        pdf2md convert page.html -o output.md --html-base-url https://example.com
-        pdf2md convert report.docx -o output.md
-        pdf2md convert document.docx --docx-include-comments
-        pdf2md convert spreadsheet.xlsx -o output.md --xlsx-mode combined
-        pdf2md convert workbook.xlsx --xlsx-sheets "Sheet1,Sheet3" --xlsx-mode selected
+        pdf2md convert scanned.pdf --llm-descriptions
+        pdf2md convert complex.pdf --azure --rich-metadata
+
+        # HTML conversion
+        pdf2md convert page.html --html-base-url https://example.com
+
+        # Office documents
+        pdf2md convert report.docx --docx-include-comments
+        pdf2md convert presentation.pptx -o slides.md
+        pdf2md convert spreadsheet.xlsx --xlsx-mode combined
+
+        # Images with OCR
+        pdf2md convert scan.jpg -o text.md
+
+        # Audio transcription
+        pdf2md convert podcast.mp3 -o transcript.md
+
+        # YouTube transcripts
+        pdf2md convert https://youtube.com/watch?v=... -o transcript.md
     """
     try:
         # Determine output path
@@ -152,6 +226,13 @@ def convert(
 
         # Create configuration
         config = Config(
+            # MarkItDown v2.0 options
+            use_markitdown=use_markitdown,
+            rich_conversion=rich_conversion,
+            llm_enabled=llm_descriptions,
+            llm_model=llm_model,
+            azure_enabled=azure_docintel,
+            # Core conversion options
             strategy=strategy,
             image_mode=image_mode,
             extract_images=extract_images,
@@ -467,14 +548,55 @@ def check() -> None:
     """
     Check availability of dependencies and converters.
     """
-    console.print("[bold]Checking dependencies...[/bold]\n")
+    console.print(f"[bold]pdf2md version {__version__}[/bold]\n")
+
+    # Check MarkItDown availability (v2.0 core)
+    console.print("[bold]Core Converter (v2.0):[/bold]")
+    try:
+        import markitdown
+        console.print(f"  [green]✓ MarkItDown[/green] - Primary converter for 13+ formats")
+        console.print(f"    Version: {markitdown.__version__ if hasattr(markitdown, '__version__') else 'installed'}")
+    except ImportError:
+        console.print(f"  [red]✗ MarkItDown[/red] - Not installed (pip install markitdown[all])")
+
+    # Check MarkItDown optional features
+    console.print("\n[bold]MarkItDown Optional Features:[/bold]")
+
+    # LLM integration
+    try:
+        import openai
+        console.print(f"  [green]✓ openai[/green] - LLM-powered image descriptions")
+    except ImportError:
+        console.print(f"  [yellow]○ openai[/yellow] - LLM image descriptions (pip install openai)")
+
+    # Azure Document Intelligence
+    try:
+        from azure.ai import formrecognizer
+        console.print(f"  [green]✓ azure-ai-formrecognizer[/green] - High-accuracy PDF conversion")
+    except ImportError:
+        console.print(f"  [yellow]○ azure-ai-formrecognizer[/yellow] - Azure Document Intelligence (pip install azure-ai-formrecognizer)")
+
+    # Audio transcription
+    try:
+        import speech_recognition
+        console.print(f"  [green]✓ SpeechRecognition[/green] - Audio transcription")
+    except ImportError:
+        console.print(f"  [yellow]○ SpeechRecognition[/yellow] - Audio transcription (pip install SpeechRecognition)")
+
+    # YouTube transcription
+    try:
+        from youtube_transcript_api import YouTubeTranscriptApi
+        console.print(f"  [green]✓ youtube-transcript-api[/green] - YouTube transcript extraction")
+    except ImportError:
+        console.print(f"  [yellow]○ youtube-transcript-api[/yellow] - YouTube transcripts (pip install youtube-transcript-api)")
 
     # Create orchestrator to check converters
     orchestrator = ConversionOrchestrator()
     available = orchestrator.list_available_converters()
 
     # Create status table
-    table = Table(title="Converter Availability")
+    console.print("\n")
+    table = Table(title="Available Converters")
     table.add_column("File Type", style="cyan")
     table.add_column("Strategy", style="yellow")
     table.add_column("Status", style="white")
@@ -488,29 +610,41 @@ def check() -> None:
 
     console.print(table)
 
-    # Check optional dependencies
-    console.print("\n[bold]Optional Dependencies:[/bold]")
+    # Check legacy dependencies
+    console.print("\n[bold]Legacy Converters (deprecated):[/bold]")
 
-    optional_deps = {
+    legacy_deps = {
         "pytesseract": "OCR support for scanned PDFs",
         "markdownify": "HTML to Markdown conversion",
-        "beautifulsoup4": "HTML parsing and preprocessing",
-        "pypandoc": "DOCX to Markdown conversion (primary)",
-        "mammoth": "DOCX to Markdown conversion (fallback)",
-        "python-docx": "DOCX metadata and image extraction",
-        "pandas": "XLSX to Markdown conversion (required)",
-        "openpyxl": "XLSX advanced features (charts, images)",
-        "streamlit": "Web UI interface",
-        "fastapi": "REST API server",
-        "marker-pdf": "High-accuracy AI converter (PDFs)",
+        "beautifulsoup4": "HTML parsing",
+        "pypandoc": "DOCX conversion (primary)",
+        "mammoth": "DOCX conversion (fallback)",
+        "python-docx": "DOCX metadata extraction",
+        "pandas": "XLSX conversion",
+        "openpyxl": "XLSX advanced features",
     }
 
-    for dep, description in optional_deps.items():
+    for dep, description in legacy_deps.items():
         try:
             __import__(dep.replace("-", "_"))
             console.print(f"  [green]✓[/green] {dep}: {description}")
         except ImportError:
-            console.print(f"  [yellow]○[/yellow] {dep}: {description} (not installed)")
+            console.print(f"  [dim]○ {dep}: {description} (not needed with MarkItDown)[/dim]")
+
+    # Check web interfaces
+    console.print("\n[bold]Web Interfaces:[/bold]")
+    web_deps = {
+        "streamlit": "Web UI interface",
+        "fastapi": "REST API server",
+        "uvicorn": "ASGI server for FastAPI",
+    }
+
+    for dep, description in web_deps.items():
+        try:
+            __import__(dep.replace("-", "_"))
+            console.print(f"  [green]✓[/green] {dep}: {description}")
+        except ImportError:
+            console.print(f"  [yellow]○[/yellow] {dep}: {description} (pip install -r requirements-web.txt)")
 
 
 if __name__ == "__main__":
