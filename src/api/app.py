@@ -15,8 +15,26 @@ from pdf2markdown.core.orchestrator import ConversionOrchestrator
 
 # Create FastAPI app
 app = FastAPI(
-    title="Document to Markdown API",
-    description="High-fidelity document to Markdown conversion REST API. Supports: PDF, HTML, DOCX, XLSX",
+    title="Document to Markdown API (v2.0)",
+    description="""
+    Multi-format document to Markdown conversion powered by Microsoft MarkItDown.
+
+    **Supported Formats (13+):**
+    - Documents: PDF, DOCX, XLSX, PPTX
+    - Web: HTML
+    - Images: JPG, PNG, GIF, BMP, TIFF, WebP (with OCR)
+    - Audio: WAV, MP3, M4A (with transcription)
+    - E-books: EPub
+    - Data: JSON, XML, CSV
+    - Archives: ZIP
+    - Email: MSG (Outlook)
+    - YouTube: URL transcription
+
+    **v2.0 Features:**
+    - LLM-powered image descriptions (OpenAI)
+    - Azure Document Intelligence for high-accuracy PDFs
+    - Rich metadata extraction
+    """,
     version=__version__,
     docs_url="/docs",
     redoc_url="/redoc",
@@ -28,8 +46,16 @@ conversion_jobs: Dict[str, dict] = {}
 
 # Request/Response models
 class ConversionRequest(BaseModel):
-    """Request model for conversion options."""
+    """Request model for conversion options (v2.0)."""
 
+    # MarkItDown v2.0 options
+    use_markitdown: bool = True
+    rich_conversion: bool = False
+    llm_enabled: bool = False
+    llm_model: str = "gpt-4o"
+    azure_enabled: bool = False
+
+    # Core conversion options
     strategy: str = "auto"
     image_mode: str = "embed"
     extract_images: bool = True
@@ -38,12 +64,15 @@ class ConversionRequest(BaseModel):
     ocr_enabled: bool = False
     ocr_language: str = "eng"
     include_page_breaks: bool = False
+
     # HTML-specific options
     html_download_images: bool = True
     html_base_url: Optional[str] = None
+
     # DOCX-specific options
     docx_include_comments: bool = False
     docx_include_headers_footers: bool = False
+
     # XLSX-specific options
     xlsx_mode: str = "combined"
     xlsx_sheets: Optional[list[str]] = None
@@ -75,11 +104,65 @@ class JobStatusResponse(BaseModel):
 async def root() -> dict:
     """Root endpoint with API information."""
     return {
-        "name": "Document to Markdown API",
+        "name": "Document to Markdown API (v2.0)",
         "version": __version__,
         "status": "healthy",
-        "formats": ["PDF", "HTML", "DOCX", "XLSX"],
+        "powered_by": "Microsoft MarkItDown",
+        "formats": [
+            "PDF", "DOCX", "XLSX", "PPTX", "HTML",
+            "JPG", "PNG", "GIF", "BMP", "TIFF", "WebP",
+            "WAV", "MP3", "M4A",
+            "EPub", "JSON", "XML", "CSV", "ZIP", "MSG"
+        ],
+        "features": ["LLM image descriptions", "Azure Document Intelligence", "Rich metadata extraction"],
         "docs": "/docs",
+        "formats_endpoint": "/formats",
+    }
+
+
+@app.get("/formats", tags=["Health"])
+async def list_formats() -> dict:
+    """List all supported file formats and their capabilities."""
+    return {
+        "documents": {
+            "PDF": "Portable Document Format - Full support with optional Azure Document Intelligence",
+            "DOCX": "Microsoft Word Document",
+            "XLSX": "Microsoft Excel Spreadsheet with multi-sheet support",
+            "PPTX": "Microsoft PowerPoint Presentation"
+        },
+        "web": {
+            "HTML": "Web pages with image download and link resolution"
+        },
+        "images": {
+            "JPG/JPEG": "Image with optional OCR and LLM descriptions",
+            "PNG": "Image with optional OCR and LLM descriptions",
+            "GIF": "Image with optional OCR and LLM descriptions",
+            "BMP": "Bitmap image with optional OCR",
+            "TIFF": "Tagged Image Format with optional OCR",
+            "WebP": "Web image format with optional OCR"
+        },
+        "audio": {
+            "WAV": "Audio with optional speech transcription",
+            "MP3": "Audio with optional speech transcription",
+            "M4A": "Audio with optional speech transcription"
+        },
+        "ebooks": {
+            "EPub": "Electronic publication format"
+        },
+        "data": {
+            "JSON": "JavaScript Object Notation",
+            "XML": "Extensible Markup Language",
+            "CSV": "Comma-Separated Values"
+        },
+        "archives": {
+            "ZIP": "Compressed archive - iterates over contents"
+        },
+        "email": {
+            "MSG": "Outlook message format"
+        },
+        "urls": {
+            "YouTube": "YouTube video transcript extraction (provide URL)"
+        }
     }
 
 
