@@ -150,15 +150,17 @@ class ConversionOrchestrator:
 
         if not converter:
             available = self._get_available_strategies_for_type(file_type)
+            strategy_str = strategy.value if isinstance(strategy, ConversionStrategy) else strategy
             raise ValueError(
-                f"No converter available for {file_type.upper()} with strategy '{strategy.value}'. "
+                f"No converter available for {file_type.upper()} with strategy '{strategy_str}'. "
                 f"Available strategies for {file_type.upper()}: {available}"
             )
 
         # Log conversion start
+        strategy_str = strategy.value if isinstance(strategy, ConversionStrategy) else strategy
         console.print(f"[cyan]File Type:[/cyan] {file_type.upper()}")
         console.print(f"[cyan]Converting:[/cyan] {file_path.name}")
-        console.print(f"[cyan]Strategy:[/cyan] {strategy.value}")
+        console.print(f"[cyan]Strategy:[/cyan] {strategy_str}")
         console.print(f"[cyan]Converter:[/cyan] {converter.get_name()}")
 
         # Perform conversion with progress
@@ -274,20 +276,23 @@ class ConversionOrchestrator:
     def _get_converter_for_type(
         self,
         file_type: str,
-        strategy: ConversionStrategy
+        strategy: ConversionStrategy | str
     ) -> Optional[DocumentConverter]:
         """
         Get converter for the given file type and strategy.
 
         Args:
             file_type: File type ('pdf', 'html', 'docx', 'xlsx')
-            strategy: Conversion strategy
+            strategy: Conversion strategy (enum or string)
 
         Returns:
             DocumentConverter instance or None
         """
+        # Get strategy value (handle both enum and string)
+        strategy_str = strategy.value if isinstance(strategy, ConversionStrategy) else strategy
+
         # Try exact match first
-        key = (file_type, strategy.value)
+        key = (file_type, strategy_str)
         if key in self._converters:
             return self._converters[key]
 
