@@ -57,7 +57,8 @@ tmp/
 
 # Output
 output/
-*.md
+output*.md
+converted*.md
 *_images/
 
 # Logs
