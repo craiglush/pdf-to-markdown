@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # CLI service
+  # CLI service (base - MarkItDown only)
   cli:
     build:
       context: .
@@ -11,11 +11,36 @@ services:
     volumes:
       - ./input:/input
       - ./output:/output
+    environment:
+      - PDF2MD_USE_MARKITDOWN=true
     command: ["pdf2md", "convert", "/input/document.pdf", "-o", "/output/document.md"]
     profiles:
       - cli
 
-  # FastAPI REST API
+  # CLI with full features (AI + legacy)
+  cli-full:
+    build:
+      context: .
+      target: full
+    image: pdf2markdown:cli-full
+    container_name: pdf2md-cli-full
+    volumes:
+      - ./input:/input
+      - ./output:/output
+      - ./.env:/app/.env:ro
+    environment:
+      - PDF2MD_USE_MARKITDOWN=true
+      - PDF2MD_LLM_ENABLED=${PDF2MD_LLM_ENABLED:-false}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - PDF2MD_AZURE_ENABLED=${PDF2MD_AZURE_ENABLED:-false}
+      - AZURE_DOCINTEL_ENDPOINT=${AZURE_DOCINTEL_ENDPOINT:-}
+      - AZURE_DOCINTEL_KEY=${AZURE_DOCINTEL_KEY:-}
+      - PDF2MD_RICH_CONVERSION=${PDF2MD_RICH_CONVERSION:-false}
+    command: ["pdf2md", "convert", "/input/document.pdf", "-o", "/output/document.md"]
+    profiles:
+      - cli-full
+
+  # FastAPI REST API (v2.0)
   api:
     build:
       context: .
@@ -27,8 +52,17 @@ services:
     environment:
       - PDF2MD_DEBUG=false
       - PDF2MD_LOG_LEVEL=INFO
+      - PDF2MD_USE_MARKITDOWN=true
+      - PDF2MD_API_WORKERS=4
+      # Optional AI features (set in .env)
+      - PDF2MD_LLM_ENABLED=${PDF2MD_LLM_ENABLED:-false}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - PDF2MD_AZURE_ENABLED=${PDF2MD_AZURE_ENABLED:-false}
+      - AZURE_DOCINTEL_ENDPOINT=${AZURE_DOCINTEL_ENDPOINT:-}
+      - AZURE_DOCINTEL_KEY=${AZURE_DOCINTEL_KEY:-}
     volumes:
       - ./temp:/tmp/pdf2md
+      - ./.env:/app/.env:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -38,7 +72,7 @@ services:
     profiles:
       - api
 
-  # Streamlit Web UI
+  # Streamlit Web UI (v2.0)
   streamlit:
     build:
       context: .
@@ -49,13 +83,21 @@ services:
       - "8501:8501"
     environment:
       - PDF2MD_DEBUG=false
+      - PDF2MD_USE_MARKITDOWN=true
+      # Optional AI features (configurable via UI or .env)
+      - PDF2MD_LLM_ENABLED=${PDF2MD_LLM_ENABLED:-false}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - PDF2MD_AZURE_ENABLED=${PDF2MD_AZURE_ENABLED:-false}
+      - AZURE_DOCINTEL_ENDPOINT=${AZURE_DOCINTEL_ENDPOINT:-}
+      - AZURE_DOCINTEL_KEY=${AZURE_DOCINTEL_KEY:-}
     volumes:
       - ./temp:/tmp/pdf2md
+      - ./.env:/app/.env:ro
     restart: unless-stopped
     profiles:
       - web
 
-  # Development environment
+  # Development environment (all features)
   dev:
     build:
       context: .
@@ -66,6 +108,9 @@ services:
       - .:/app
       - ./input:/input
       - ./output:/output
+    environment:
+      - PDF2MD_USE_MARKITDOWN=true
+      - PDF2MD_DEBUG=true
     command: ["bash"]
     stdin_open: true
     tty: true
