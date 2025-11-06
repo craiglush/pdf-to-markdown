@@ -202,6 +202,7 @@ def main() -> None:
                 if result:
                     st.session_state['result'] = result
                     st.success("✅ Conversion completed successfully!")
+                    st.rerun()  # Force Streamlit to refresh and display Results section
 
     # Display results if available
     if 'result' in st.session_state:
