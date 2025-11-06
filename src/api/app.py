@@ -15,8 +15,8 @@ from pdf2markdown.core.orchestrator import ConversionOrchestrator
 
 # Create FastAPI app
 app = FastAPI(
-    title="PDF to Markdown API",
-    description="High-fidelity PDF to Markdown conversion REST API",
+    title="Document to Markdown API",
+    description="High-fidelity document to Markdown conversion REST API. Supports: PDF, HTML, DOCX, XLSX",
     version=__version__,
     docs_url="/docs",
     redoc_url="/redoc",
@@ -38,6 +38,9 @@ class ConversionRequest(BaseModel):
     ocr_enabled: bool = False
     ocr_language: str = "eng"
     include_page_breaks: bool = False
+    # HTML-specific options
+    html_download_images: bool = True
+    html_base_url: Optional[str] = None
 
 
 class ConversionResponse(BaseModel):
@@ -65,9 +68,10 @@ class JobStatusResponse(BaseModel):
 async def root() -> dict:
     """Root endpoint with API information."""
     return {
-        "name": "PDF to Markdown API",
+        "name": "Document to Markdown API",
         "version": __version__,
         "status": "healthy",
+        "formats": ["PDF", "HTML", "DOCX", "XLSX"],
         "docs": "/docs",
     }
 
@@ -88,8 +92,8 @@ async def health_check() -> dict:
 
 
 @app.post("/convert", response_model=ConversionResponse, tags=["Conversion"])
-async def convert_pdf(
-    file: UploadFile = File(..., description="PDF file to convert"),
+async def convert_document(
+    file: UploadFile = File(..., description="Document file to convert (PDF, HTML, DOCX, XLSX)"),
     strategy: str = "auto",
     image_mode: str = "embed",
     extract_images: bool = True,
@@ -97,30 +101,41 @@ async def convert_pdf(
     table_format: str = "github",
     ocr_enabled: bool = False,
     ocr_language: str = "eng",
+    html_download_images: bool = True,
+    html_base_url: Optional[str] = None,
 ) -> ConversionResponse:
     """
-    Convert a PDF file to Markdown.
+    Convert a document file to Markdown.
+
+    Supports: PDF, HTML, DOCX, XLSX
 
     Args:
-        file: PDF file to convert
-        strategy: Conversion strategy (auto, fast, accurate, ocr)
+        file: Document file to convert
+        strategy: Conversion strategy (auto, fast, accurate, ocr) - mainly for PDFs
         image_mode: Image handling (embed, link, separate)
-        extract_images: Extract images from PDF
-        extract_tables: Extract tables from PDF
+        extract_images: Extract images from document
+        extract_tables: Extract tables from document
         table_format: Table format (github, pipe, grid, html)
         ocr_enabled: Enable OCR for scanned PDFs
         ocr_language: Tesseract language code
+        html_download_images: Download external images from HTML (otherwise keep as links)
+        html_base_url: Base URL for resolving relative links in HTML
 
     Returns:
         ConversionResponse with markdown content
     """
     # Validate file type
-    if not file.filename.endswith('.pdf'):
-        raise HTTPException(status_code=400, detail="File must be a PDF")
+    supported_extensions = {'.pdf', '.html', '.htm', '.docx', '.xlsx'}
+    file_ext = Path(file.filename).suffix.lower()
+    if file_ext not in supported_extensions:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type: {file_ext}. Supported: {', '.join(supported_extensions)}"
+        )
 
     try:
-        # Save uploaded file
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+        # Save uploaded file with appropriate suffix
+        with tempfile.NamedTemporaryFile(delete=False, suffix=file_ext) as tmp_file:
             content = await file.read()
             tmp_file.write(content)
             tmp_path = Path(tmp_file.name)
@@ -134,6 +149,9 @@ async def convert_pdf(
             table_format=TableFormat(table_format),
             ocr_enabled=ocr_enabled,
             ocr_language=ocr_language,
+            # HTML-specific options
+            html_download_images=html_download_images,
+            html_base_url=html_base_url,
         )
 
         # Convert
@@ -159,39 +177,50 @@ async def convert_pdf(
 
 
 @app.post("/convert/async", response_model=JobStatusResponse, tags=["Conversion"])
-async def convert_pdf_async(
+async def convert_document_async(
     background_tasks: BackgroundTasks,
-    file: UploadFile = File(...),
+    file: UploadFile = File(..., description="Document file to convert (PDF, HTML, DOCX, XLSX)"),
     strategy: str = "auto",
     image_mode: str = "embed",
     extract_images: bool = True,
     extract_tables: bool = True,
     table_format: str = "github",
+    html_download_images: bool = True,
+    html_base_url: Optional[str] = None,
 ) -> JobStatusResponse:
     """
-    Start an asynchronous PDF conversion job.
+    Start an asynchronous document conversion job.
+
+    Supports: PDF, HTML, DOCX, XLSX
 
     Args:
         background_tasks: FastAPI background tasks
-        file: PDF file to convert
+        file: Document file to convert
         strategy: Conversion strategy
         image_mode: Image handling mode
         extract_images: Extract images
         extract_tables: Extract tables
         table_format: Table format
+        html_download_images: Download external images from HTML
+        html_base_url: Base URL for resolving relative links in HTML
 
     Returns:
         Job status response with job ID
     """
     # Validate file
-    if not file.filename.endswith('.pdf'):
-        raise HTTPException(status_code=400, detail="File must be a PDF")
+    supported_extensions = {'.pdf', '.html', '.htm', '.docx', '.xlsx'}
+    file_ext = Path(file.filename).suffix.lower()
+    if file_ext not in supported_extensions:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type: {file_ext}. Supported: {', '.join(supported_extensions)}"
+        )
 
     # Generate job ID
     job_id = str(uuid.uuid4())
 
-    # Save file
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+    # Save file with appropriate suffix
+    with tempfile.NamedTemporaryFile(delete=False, suffix=file_ext) as tmp_file:
         content = await file.read()
         tmp_file.write(content)
         tmp_path = Path(tmp_file.name)
@@ -201,7 +230,7 @@ async def convert_pdf_async(
         "status": "pending",
         "progress": 0.0,
         "message": "Conversion queued",
-        "pdf_path": str(tmp_path),
+        "file_path": str(tmp_path),
         "result": None,
     }
 
@@ -215,6 +244,8 @@ async def convert_pdf_async(
         extract_images,
         extract_tables,
         table_format,
+        html_download_images,
+        html_base_url,
     )
 
     return JobStatusResponse(
@@ -227,30 +258,34 @@ async def convert_pdf_async(
 
 async def process_conversion(
     job_id: str,
-    pdf_path: Path,
+    file_path: Path,
     strategy: str,
     image_mode: str,
     extract_images: bool,
     extract_tables: bool,
     table_format: str,
+    html_download_images: bool = True,
+    html_base_url: Optional[str] = None,
 ) -> None:
     """
-    Background task to process PDF conversion.
+    Background task to process document conversion.
 
     Args:
         job_id: Job identifier
-        pdf_path: Path to PDF file
+        file_path: Path to document file
         strategy: Conversion strategy
         image_mode: Image handling mode
         extract_images: Extract images
         extract_tables: Extract tables
         table_format: Table format
+        html_download_images: Download external images from HTML
+        html_base_url: Base URL for resolving relative links in HTML
     """
     try:
         # Update status
         conversion_jobs[job_id]["status"] = "processing"
         conversion_jobs[job_id]["progress"] = 0.1
-        conversion_jobs[job_id]["message"] = "Converting PDF..."
+        conversion_jobs[job_id]["message"] = "Converting document..."
 
         # Create configuration
         config = Config(
@@ -259,11 +294,13 @@ async def process_conversion(
             extract_images=extract_images,
             extract_tables=extract_tables,
             table_format=TableFormat(table_format),
+            html_download_images=html_download_images,
+            html_base_url=html_base_url,
         )
 
         # Convert
         orchestrator = ConversionOrchestrator(config)
-        result = orchestrator.convert(pdf_path)
+        result = orchestrator.convert(file_path)
 
         # Update with result
         conversion_jobs[job_id]["status"] = "completed"
@@ -281,7 +318,7 @@ async def process_conversion(
     finally:
         # Clean up temp file
         try:
-            pdf_path.unlink()
+            file_path.unlink()
         except Exception:
             pass
 
@@ -313,14 +350,16 @@ async def get_job_status(job_id: str) -> JobStatusResponse:
 
 @app.post("/convert/batch", tags=["Conversion"])
 async def convert_batch(
-    files: List[UploadFile] = File(...),
+    files: List[UploadFile] = File(..., description="Document files to convert (PDF, HTML, DOCX, XLSX)"),
     strategy: str = "auto",
 ) -> dict:
     """
-    Convert multiple PDF files in batch.
+    Convert multiple document files in batch.
+
+    Supports: PDF, HTML, DOCX, XLSX
 
     Args:
-        files: List of PDF files
+        files: List of document files
         strategy: Conversion strategy
 
     Returns:
@@ -330,8 +369,11 @@ async def convert_batch(
 
     for file in files:
         try:
-            # Save file
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+            # Determine file extension
+            file_ext = Path(file.filename).suffix.lower()
+
+            # Save file with appropriate suffix
+            with tempfile.NamedTemporaryFile(delete=False, suffix=file_ext) as tmp_file:
                 content = await file.read()
                 tmp_file.write(content)
                 tmp_path = Path(tmp_file.name)

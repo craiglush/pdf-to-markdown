@@ -1,17 +1,23 @@
-# PDF to Markdown Converter
+# Document to Markdown Converter
 
-A high-fidelity PDF to Markdown converter with support for complex tables, image extraction, multi-column layouts, and OCR for scanned PDFs.
+A high-fidelity document to Markdown converter with support for **PDF**, **HTML**, **DOCX**, and **XLSX** files. Features include complex table extraction, image handling, multi-column layouts, and OCR for scanned PDFs.
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Features
 
+### Multi-Format Support
+- 📄 **PDF**: Fast conversion (0.12s/page), OCR for scanned documents, multi-column layouts
+- 🌐 **HTML**: External image download, relative link resolution, semantic tag preservation
+- 📝 **DOCX**: Formatting, tables, images *(coming in Phase 3)*
+- 📊 **XLSX**: Spreadsheets, charts, multi-sheet support *(coming in Phase 4)*
+
+### Core Capabilities
 - ✅ **Fast Conversion**: 0.12s per page with PyMuPDF4LLM
 - 📊 **Complex Tables**: Automatic header detection and table extraction
-- 🖼️ **Image Extraction**: Base64 embedding or separate file export
+- 🖼️ **Image Handling**: Base64 embedding, external download, or separate file export
 - 📝 **Text Formatting**: Preserves bold, italic, headers, and lists
-- 📰 **Multi-column Layouts**: Intelligent column detection and reading order
 - 🔍 **OCR Support**: Tesseract integration for scanned PDFs
 - 🎯 **Multiple Interfaces**: CLI, Web UI (Streamlit), REST API (FastAPI)
 - 🐳 **Docker Ready**: Containerized deployment options
@@ -56,6 +62,12 @@ docker-compose --profile api up api
 # Convert a PDF to Markdown
 pdf2md convert document.pdf -o output.md
 
+# Convert an HTML file to Markdown
+pdf2md convert page.html -o output.md
+
+# Convert with base URL for relative links (HTML)
+pdf2md convert page.html --html-base-url https://example.com
+
 # Auto-detect scanned PDFs and use OCR
 pdf2md convert scanned.pdf -o output.md --strategy auto
 
@@ -65,7 +77,8 @@ pdf2md convert document.pdf --images embed
 # Extract images to separate files
 pdf2md convert document.pdf --images link
 
-# Batch convert multiple PDFs
+# Batch convert multiple files (supports PDF, HTML, DOCX, XLSX)
+pdf2md batch ./docs/ --pattern "*.html" --output ./markdown/
 pdf2md batch ./pdfs/ --output ./markdown/ --parallel 4
 
 # Get PDF information
@@ -161,10 +174,12 @@ curl http://localhost:8000/converters
 ```
 pdf2md convert [OPTIONS] INPUT_FILE
 
+Supported formats: PDF, HTML, DOCX, XLSX
+
 Options:
   -o, --output PATH           Output file path
   -s, --strategy [auto|fast|accurate|ocr]
-                              Conversion strategy (default: auto)
+                              Conversion strategy (default: auto, mainly for PDFs)
   -i, --images [embed|link|separate]
                               Image handling mode (default: embed)
   --extract-images / --no-extract-images
@@ -175,7 +190,13 @@ Options:
                               Table format (default: github)
   --ocr                       Force OCR for scanned PDFs
   --ocr-lang TEXT             Tesseract language code (default: eng)
-  --page-breaks               Include page break markers
+  --page-breaks               Include page break markers (PDFs only)
+
+  # HTML-specific options
+  --html-download-images / --html-no-download-images
+                              Download external images from HTML (default: True)
+  --html-base-url TEXT        Base URL for resolving relative links in HTML
+
   -v, --verbose               Verbose output
   --help                      Show this message and exit
 ```
@@ -225,6 +246,44 @@ pdf2md convert document.pdf --strategy accurate
 ```
 
 **Note**: First run downloads ~1GB model, requires more resources but provides 95-99% accuracy.
+
+### HTML to Markdown Conversion
+
+Convert HTML files with advanced features:
+
+```bash
+# Basic HTML conversion
+pdf2md convert page.html -o output.md
+
+# Download external images (default: True)
+pdf2md convert page.html --html-download-images
+
+# Keep external images as links (faster)
+pdf2md convert page.html --html-no-download-images
+
+# Resolve relative links with base URL
+pdf2md convert page.html --html-base-url https://example.com/docs/
+
+# Combine with image embedding
+pdf2md convert page.html --images embed --html-download-images
+```
+
+**HTML Conversion Features:**
+- ✅ Semantic HTML preservation (headings, lists, code blocks, tables)
+- ✅ External image download and embedding
+- ✅ Relative link resolution with configurable base URL
+- ✅ Data URI image handling
+- ✅ Malformed HTML handling (via BeautifulSoup)
+- ✅ Table extraction with automatic header detection
+
+**Installation:**
+```bash
+# Install HTML conversion dependencies
+pip install -r requirements-html.txt
+
+# Or install with optional HTML support
+pip install -e ".[html]"
+```
 
 ### Batch Processing
 

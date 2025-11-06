@@ -14,7 +14,7 @@ from pdf2markdown.core.orchestrator import ConversionOrchestrator
 
 # Page configuration
 st.set_page_config(
-    page_title="PDF to Markdown Converter",
+    page_title="Document to Markdown Converter",
     page_icon="📄",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -48,8 +48,9 @@ def main() -> None:
     """Main Streamlit application."""
 
     # Header
-    st.title("📄 PDF to Markdown Converter")
-    st.markdown(f"*High-fidelity PDF to Markdown conversion v{__version__}*")
+    st.title("📄 Document to Markdown Converter")
+    st.markdown(f"*High-fidelity document to Markdown conversion v{__version__}*")
+    st.markdown("**Supported formats:** PDF, HTML, DOCX, XLSX")
     st.markdown("---")
 
     # Sidebar configuration
@@ -96,39 +97,54 @@ def main() -> None:
             help="Tesseract language code (e.g., 'eng', 'fra', 'eng+fra')",
         )
 
-        page_breaks = st.checkbox("Include Page Breaks", value=False)
+        page_breaks = st.checkbox("Include Page Breaks (PDF only)", value=False)
+
+        st.subheader("HTML Options")
+        html_download_images = st.checkbox(
+            "Download External Images",
+            value=True,
+            help="Download external images from HTML (otherwise keep as links)"
+        )
+
+        html_base_url = st.text_input(
+            "Base URL",
+            value="",
+            help="Base URL for resolving relative links in HTML",
+            placeholder="https://example.com"
+        )
 
         st.markdown("---")
         st.markdown("### About")
         st.markdown(
-            "Convert PDF documents to Markdown with support for:\n"
-            "- Complex tables\n"
-            "- Image extraction\n"
-            "- Multi-column layouts\n"
-            "- OCR for scanned PDFs"
+            "Convert documents to Markdown with support for:\n"
+            "- **PDF:** Complex tables, images, OCR for scanned PDFs\n"
+            "- **HTML:** External images, relative links, semantic tags\n"
+            "- **DOCX:** Formatting, tables, images (coming soon)\n"
+            "- **XLSX:** Spreadsheets, charts (coming soon)"
         )
 
     # Main content area
     uploaded_file = st.file_uploader(
-        "Choose a PDF file",
-        type=["pdf"],
-        help="Upload a PDF file to convert to Markdown",
+        "Choose a document file",
+        type=["pdf", "html", "htm", "docx", "xlsx"],
+        help="Upload a document file to convert to Markdown (PDF, HTML, DOCX, XLSX)",
     )
 
     if uploaded_file is not None:
         # Display file info
+        file_ext = Path(uploaded_file.name).suffix.upper().lstrip('.')
         col1, col2, col3 = st.columns(3)
         with col1:
             st.metric("Filename", uploaded_file.name)
         with col2:
             st.metric("Size", f"{uploaded_file.size / 1024:.1f} KB")
         with col3:
-            st.metric("Type", "PDF")
+            st.metric("Type", file_ext)
 
         # Convert button
         if st.button("🚀 Convert to Markdown", type="primary"):
-            with st.spinner("Converting PDF to Markdown..."):
-                result = convert_pdf(
+            with st.spinner(f"Converting {file_ext} to Markdown..."):
+                result = convert_document(
                     uploaded_file,
                     strategy=strategy,
                     image_mode=image_mode,
@@ -138,6 +154,8 @@ def main() -> None:
                     ocr_enabled=ocr_enabled,
                     ocr_language=ocr_language,
                     page_breaks=page_breaks,
+                    html_download_images=html_download_images,
+                    html_base_url=html_base_url or None,
                 )
 
                 if result:
@@ -209,7 +227,7 @@ def main() -> None:
                                 f"💾 {img.size_bytes / 1024:.1f} KB"
                             )
             else:
-                st.info("No images extracted from this PDF")
+                st.info("No images extracted from this document")
 
         with tab4:
             st.subheader("Conversion Metadata")
@@ -251,14 +269,14 @@ def main() -> None:
     st.markdown("---")
     st.markdown(
         "<div style='text-align: center; color: gray;'>"
-        f"PDF to Markdown Converter v{__version__} | "
+        f"Document to Markdown Converter v{__version__} | "
         "Built with Streamlit"
         "</div>",
         unsafe_allow_html=True,
     )
 
 
-def convert_pdf(
+def convert_document(
     uploaded_file,
     strategy: str,
     image_mode: str,
@@ -268,9 +286,11 @@ def convert_pdf(
     ocr_enabled: bool,
     ocr_language: str,
     page_breaks: bool,
+    html_download_images: bool,
+    html_base_url: Optional[str],
 ) -> Optional[ConversionResult]:
     """
-    Convert uploaded PDF file.
+    Convert uploaded document file.
 
     Args:
         uploaded_file: Streamlit UploadedFile object
@@ -282,13 +302,18 @@ def convert_pdf(
         ocr_enabled: Enable OCR
         ocr_language: OCR language code
         page_breaks: Include page breaks
+        html_download_images: Download external images from HTML
+        html_base_url: Base URL for resolving relative links in HTML
 
     Returns:
         ConversionResult or None if error
     """
     try:
-        # Save uploaded file to temporary location
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+        # Determine file extension
+        file_ext = Path(uploaded_file.name).suffix.lower()
+
+        # Save uploaded file to temporary location with appropriate suffix
+        with tempfile.NamedTemporaryFile(delete=False, suffix=file_ext) as tmp_file:
             tmp_file.write(uploaded_file.getvalue())
             tmp_path = Path(tmp_file.name)
 
@@ -302,6 +327,8 @@ def convert_pdf(
             ocr_enabled=ocr_enabled,
             ocr_language=ocr_language,
             include_page_breaks=page_breaks,
+            html_download_images=html_download_images,
+            html_base_url=html_base_url,
         )
 
         # Convert

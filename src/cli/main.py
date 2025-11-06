@@ -14,7 +14,7 @@ from pdf2markdown.core.orchestrator import ConversionOrchestrator
 
 app = typer.Typer(
     name="pdf2md",
-    help="Convert PDF documents to Markdown with high fidelity",
+    help="Convert documents (PDF, HTML, DOCX, XLSX) to Markdown with high fidelity",
     add_completion=True,
 )
 console = Console()
@@ -24,7 +24,7 @@ console = Console()
 def convert(
     input_file: Path = typer.Argument(
         ...,
-        help="Input PDF file to convert",
+        help="Input file to convert (PDF, HTML, DOCX, XLSX)",
         exists=True,
         file_okay=True,
         dir_okay=False,
@@ -40,7 +40,7 @@ def convert(
         ConversionStrategy.AUTO,
         "--strategy",
         "-s",
-        help="Conversion strategy",
+        help="Conversion strategy (mainly for PDFs)",
         case_sensitive=False,
     ),
     image_mode: ImageMode = typer.Option(
@@ -53,7 +53,7 @@ def convert(
     extract_images: bool = typer.Option(
         True,
         "--extract-images/--no-extract-images",
-        help="Extract images from PDF",
+        help="Extract images from document",
     ),
     extract_tables: bool = typer.Option(
         True,
@@ -80,7 +80,18 @@ def convert(
     page_breaks: bool = typer.Option(
         False,
         "--page-breaks",
-        help="Include page break markers",
+        help="Include page break markers (PDFs only)",
+    ),
+    # HTML-specific options
+    html_download_images: bool = typer.Option(
+        True,
+        "--html-download-images/--html-no-download-images",
+        help="Download external images from HTML (otherwise keep as links)",
+    ),
+    html_base_url: Optional[str] = typer.Option(
+        None,
+        "--html-base-url",
+        help="Base URL for resolving relative links in HTML",
     ),
     verbose: bool = typer.Option(
         False,
@@ -90,10 +101,14 @@ def convert(
     ),
 ) -> None:
     """
-    Convert a PDF file to Markdown format.
+    Convert a document file to Markdown format.
 
-    Example:
+    Supports: PDF, HTML, DOCX, XLSX
+
+    Examples:
         pdf2md convert document.pdf -o output.md --images embed
+        pdf2md convert page.html -o output.md --html-base-url https://example.com
+        pdf2md convert report.docx -o output.md
     """
     try:
         # Determine output path
@@ -110,6 +125,9 @@ def convert(
             ocr_enabled=ocr,
             ocr_language=ocr_language,
             include_page_breaks=page_breaks,
+            # HTML-specific options
+            html_download_images=html_download_images,
+            html_base_url=html_base_url,
         )
 
         # Create orchestrator and convert
@@ -136,7 +154,7 @@ def convert(
 def batch(
     input_dir: Path = typer.Argument(
         ...,
-        help="Input directory containing PDF files",
+        help="Input directory containing documents to convert",
         exists=True,
         file_okay=False,
         dir_okay=True,
@@ -152,13 +170,13 @@ def batch(
         "*.pdf",
         "--pattern",
         "-p",
-        help="File pattern to match (e.g., '*.pdf', 'report_*.pdf')",
+        help="File pattern to match (e.g., '*.pdf', '*.html', '*.{pdf,html}')",
     ),
     recursive: bool = typer.Option(
         False,
         "--recursive",
         "-r",
-        help="Search for PDFs recursively in subdirectories",
+        help="Search for files recursively in subdirectories",
     ),
     parallel: int = typer.Option(
         1,
@@ -171,7 +189,7 @@ def batch(
         ConversionStrategy.AUTO,
         "--strategy",
         "-s",
-        help="Conversion strategy",
+        help="Conversion strategy (mainly for PDFs)",
     ),
     fail_fast: bool = typer.Option(
         False,
@@ -180,10 +198,13 @@ def batch(
     ),
 ) -> None:
     """
-    Batch convert multiple PDF files in a directory.
+    Batch convert multiple document files in a directory.
 
-    Example:
+    Supports: PDF, HTML, DOCX, XLSX
+
+    Examples:
         pdf2md batch ./pdfs/ --output ./markdown/ --parallel 4
+        pdf2md batch ./docs/ --pattern "*.html" --recursive
     """
     try:
         # Determine output directory
@@ -191,17 +212,17 @@ def batch(
             output_dir = input_dir
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        # Find PDF files
+        # Find files
         if recursive:
-            pdf_files = list(input_dir.rglob(pattern))
+            files = list(input_dir.rglob(pattern))
         else:
-            pdf_files = list(input_dir.glob(pattern))
+            files = list(input_dir.glob(pattern))
 
-        if not pdf_files:
-            console.print(f"[yellow]No PDF files found matching '{pattern}' in {input_dir}[/yellow]")
+        if not files:
+            console.print(f"[yellow]No files found matching '{pattern}' in {input_dir}[/yellow]")
             return
 
-        console.print(f"[cyan]Found {len(pdf_files)} PDF file(s) to convert[/cyan]\n")
+        console.print(f"[cyan]Found {len(files)} file(s) to convert[/cyan]\n")
 
         # Create configuration
         config = Config(strategy=strategy)
@@ -211,20 +232,20 @@ def batch(
         success_count = 0
         error_count = 0
 
-        for pdf_file in pdf_files:
+        for file in files:
             try:
-                console.print(f"[cyan]Converting:[/cyan] {pdf_file.name}")
+                console.print(f"[cyan]Converting:[/cyan] {file.name}")
 
                 # Calculate relative path for subdirectories
                 if recursive:
-                    rel_path = pdf_file.relative_to(input_dir)
+                    rel_path = file.relative_to(input_dir)
                     out_path = output_dir / rel_path.with_suffix('.md')
                     out_path.parent.mkdir(parents=True, exist_ok=True)
                 else:
-                    out_path = output_dir / pdf_file.with_suffix('.md').name
+                    out_path = output_dir / file.with_suffix('.md').name
 
                 # Convert
-                result = orchestrator.convert(pdf_file)
+                result = orchestrator.convert(file)
                 result.save(out_path)
 
                 console.print(f"[green]✓ Saved:[/green] {out_path}\n")
@@ -428,9 +449,13 @@ def check() -> None:
 
     optional_deps = {
         "pytesseract": "OCR support for scanned PDFs",
+        "markdownify": "HTML to Markdown conversion",
+        "beautifulsoup4": "HTML parsing and preprocessing",
+        "pypandoc": "DOCX to Markdown conversion",
+        "pandas": "XLSX to Markdown conversion",
         "streamlit": "Web UI interface",
         "fastapi": "REST API server",
-        "marker-pdf": "High-accuracy AI converter",
+        "marker-pdf": "High-accuracy AI converter (PDFs)",
     }
 
     for dep, description in optional_deps.items():

@@ -13,6 +13,13 @@ from pdf2markdown.core.config import Config, ConversionStrategy
 from pdf2markdown.core.file_detector import FileTypeDetector
 from pdf2markdown.core.models import ConversionResult
 
+# Import format-specific converters if available
+try:
+    from pdf2markdown.converters.html_converter import HTMLConverter
+    HTML_AVAILABLE = True
+except ImportError:
+    HTML_AVAILABLE = False
+
 console = Console()
 
 
@@ -58,11 +65,13 @@ class ConversionOrchestrator:
         # if marker_converter.is_available():
         #     self._converters[('pdf', ConversionStrategy.ACCURATE.value)] = marker_converter
 
-        # TODO: HTML, DOCX, XLSX converters will be added in future phases
-        # html_converter = HTMLConverter(self.config)
-        # if html_converter.is_available():
-        #     self._converters[('html', 'default')] = html_converter
+        # HTML converter
+        if HTML_AVAILABLE:
+            html_converter = HTMLConverter(self.config)
+            if html_converter.is_available():
+                self._converters[('html', 'default')] = html_converter
 
+        # TODO: DOCX, XLSX converters will be added in future phases
         # docx_converter = DOCXConverter(self.config)
         # if docx_converter.is_available():
         #     self._converters[('docx', 'default')] = docx_converter
