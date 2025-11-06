@@ -236,6 +236,24 @@ class Config(BaseModel):
         description="Maximum number of columns per sheet"
     )
 
+    # Performance settings (v2.0)
+    enable_cache: bool = Field(
+        default=False,
+        description="Enable result caching for repeated conversions"
+    )
+    cache_max_age_hours: int = Field(
+        default=24,
+        description="Maximum age of cached results in hours"
+    )
+    cache_dir: Optional[str] = Field(
+        default=None,
+        description="Custom cache directory (None = system temp)"
+    )
+    enable_profiling: bool = Field(
+        default=False,
+        description="Enable performance profiling and timing"
+    )
+
     # Validators to ensure enum fields are properly coerced from strings
     @field_validator('strategy', mode='before')
     @classmethod

@@ -7,9 +7,11 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 
 from pdf2markdown.converters.document_converter import DocumentConverter
+from pdf2markdown.core.cache import ConversionCache
 from pdf2markdown.core.config import Config, ConversionStrategy
 from pdf2markdown.core.file_detector import FileTypeDetector
 from pdf2markdown.core.models import ConversionResult
+from pdf2markdown.core.profiling import PerformanceTimer
 
 # Import MarkItDown converter (v2.0 primary converter)
 try:
@@ -75,6 +77,13 @@ class ConversionOrchestrator:
         """
         self.config = config or Config()
         self.file_detector = FileTypeDetector()
+
+        # Initialize cache (v2.0 performance optimization)
+        self.cache = ConversionCache(
+            cache_dir=Path(self.config.cache_dir) if self.config.cache_dir else None,
+            max_age_hours=self.config.cache_max_age_hours,
+            enabled=self.config.enable_cache,
+        )
 
         # Converter registry: {(file_type, strategy): converter}
         self._converters: Dict[Tuple[str, str], DocumentConverter] = {}
@@ -258,7 +267,20 @@ class ConversionOrchestrator:
         console.print(f"[cyan]Strategy:[/cyan] {strategy_str}")
         console.print(f"[cyan]Converter:[/cyan] {converter.get_name()}")
 
-        # Perform conversion with progress
+        # Check cache first (v2.0 performance optimization)
+        config_dict = self.config.model_dump(exclude={"enable_cache", "cache_max_age_hours", "cache_dir"})
+        cached_result = self.cache.get(file_path, config_dict)
+
+        if cached_result:
+            console.print("[green]✓[/green] Using cached result")
+            return cached_result
+
+        # Perform conversion with progress and optional profiling
+        timer = PerformanceTimer("conversion") if self.config.enable_profiling else None
+
+        if timer:
+            timer.__enter__()
+
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -275,9 +297,15 @@ class ConversionOrchestrator:
 
             progress.update(task, completed=True)
 
+        if timer:
+            timer.__exit__(None, None, None)
+
         # Validate result
         if self.config.validate_output:
             self._validate_result(result)
+
+        # Store in cache
+        self.cache.set(file_path, config_dict, result)
 
         # Print summary
         console.print("\n[green]✓ Conversion completed successfully![/green]")
