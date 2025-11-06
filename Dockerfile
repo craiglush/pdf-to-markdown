@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     poppler-utils \
     libmagic1 \
     ghostscript \
+    pandoc \
     && rm -rf /var/lib/apt/lists/*
 
 # Create app directory
@@ -22,9 +23,15 @@ WORKDIR /app
 
 # Copy requirements
 COPY requirements.txt .
+COPY requirements-html.txt .
+COPY requirements-docx.txt .
+COPY requirements-xlsx.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies (base + all format converters)
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir -r requirements-html.txt && \
+    pip install --no-cache-dir -r requirements-docx.txt && \
+    pip install --no-cache-dir -r requirements-xlsx.txt
 
 # Copy application code
 COPY src/ ./src/

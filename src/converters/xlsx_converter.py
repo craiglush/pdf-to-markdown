@@ -15,7 +15,6 @@ except ImportError:
 
 try:
     import openpyxl
-    from openpyxl.chart import ChartBase
     from openpyxl.drawing.image import Image as OpenpyxlImage
     OPENPYXL_AVAILABLE = True
 except ImportError:

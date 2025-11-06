@@ -447,6 +447,29 @@ print(result.get_summary())
 
 ## Docker Deployment
 
+**Full Format Support**: The Docker images now include all format converters (PDF, HTML, DOCX, XLSX) with their required dependencies pre-installed.
+
+### Quick Start with Docker
+
+```bash
+# Build all images
+docker-compose build
+
+# Run CLI converter
+docker-compose run --rm cli pdf2md convert /input/document.pdf -o /output/document.md
+
+# Start web UI (Streamlit)
+docker-compose --profile web up streamlit
+# Access at http://localhost:8501
+
+# Start REST API
+docker-compose --profile api up api
+# API docs at http://localhost:8000/docs
+
+# Verify all converters are available
+docker-compose run --rm cli pdf2md check
+```
+
 ### Development
 
 ```bash
