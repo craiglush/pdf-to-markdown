@@ -41,6 +41,9 @@ class ConversionRequest(BaseModel):
     # HTML-specific options
     html_download_images: bool = True
     html_base_url: Optional[str] = None
+    # DOCX-specific options
+    docx_include_comments: bool = False
+    docx_include_headers_footers: bool = False
 
 
 class ConversionResponse(BaseModel):
@@ -103,6 +106,8 @@ async def convert_document(
     ocr_language: str = "eng",
     html_download_images: bool = True,
     html_base_url: Optional[str] = None,
+    docx_include_comments: bool = False,
+    docx_include_headers_footers: bool = False,
 ) -> ConversionResponse:
     """
     Convert a document file to Markdown.
@@ -120,6 +125,8 @@ async def convert_document(
         ocr_language: Tesseract language code
         html_download_images: Download external images from HTML (otherwise keep as links)
         html_base_url: Base URL for resolving relative links in HTML
+        docx_include_comments: Include comments and tracked changes in DOCX
+        docx_include_headers_footers: Include headers and footers from DOCX
 
     Returns:
         ConversionResponse with markdown content
@@ -152,6 +159,9 @@ async def convert_document(
             # HTML-specific options
             html_download_images=html_download_images,
             html_base_url=html_base_url,
+            # DOCX-specific options
+            docx_include_comments=docx_include_comments,
+            docx_include_headers_footers=docx_include_headers_footers,
         )
 
         # Convert
@@ -187,6 +197,8 @@ async def convert_document_async(
     table_format: str = "github",
     html_download_images: bool = True,
     html_base_url: Optional[str] = None,
+    docx_include_comments: bool = False,
+    docx_include_headers_footers: bool = False,
 ) -> JobStatusResponse:
     """
     Start an asynchronous document conversion job.
@@ -203,6 +215,8 @@ async def convert_document_async(
         table_format: Table format
         html_download_images: Download external images from HTML
         html_base_url: Base URL for resolving relative links in HTML
+        docx_include_comments: Include comments and tracked changes in DOCX
+        docx_include_headers_footers: Include headers and footers from DOCX
 
     Returns:
         Job status response with job ID
@@ -246,6 +260,8 @@ async def convert_document_async(
         table_format,
         html_download_images,
         html_base_url,
+        docx_include_comments,
+        docx_include_headers_footers,
     )
 
     return JobStatusResponse(
@@ -266,6 +282,8 @@ async def process_conversion(
     table_format: str,
     html_download_images: bool = True,
     html_base_url: Optional[str] = None,
+    docx_include_comments: bool = False,
+    docx_include_headers_footers: bool = False,
 ) -> None:
     """
     Background task to process document conversion.
@@ -280,6 +298,8 @@ async def process_conversion(
         table_format: Table format
         html_download_images: Download external images from HTML
         html_base_url: Base URL for resolving relative links in HTML
+        docx_include_comments: Include comments and tracked changes in DOCX
+        docx_include_headers_footers: Include headers and footers from DOCX
     """
     try:
         # Update status
@@ -296,6 +316,8 @@ async def process_conversion(
             table_format=TableFormat(table_format),
             html_download_images=html_download_images,
             html_base_url=html_base_url,
+            docx_include_comments=docx_include_comments,
+            docx_include_headers_footers=docx_include_headers_footers,
         )
 
         # Convert

@@ -10,7 +10,7 @@ A high-fidelity document to Markdown converter with support for **PDF**, **HTML*
 ### Multi-Format Support
 - 📄 **PDF**: Fast conversion (0.12s/page), OCR for scanned documents, multi-column layouts
 - 🌐 **HTML**: External image download, relative link resolution, semantic tag preservation
-- 📝 **DOCX**: Formatting, tables, images *(coming in Phase 3)*
+- 📝 **DOCX**: Dual converter (pypandoc + mammoth fallback), formatting preservation, table extraction
 - 📊 **XLSX**: Spreadsheets, charts, multi-sheet support *(coming in Phase 4)*
 
 ### Core Capabilities
@@ -64,6 +64,12 @@ pdf2md convert document.pdf -o output.md
 
 # Convert an HTML file to Markdown
 pdf2md convert page.html -o output.md
+
+# Convert a DOCX file to Markdown
+pdf2md convert report.docx -o output.md
+
+# Convert DOCX with comments and tracked changes
+pdf2md convert report.docx --docx-include-comments
 
 # Convert with base URL for relative links (HTML)
 pdf2md convert page.html --html-base-url https://example.com
@@ -197,6 +203,12 @@ Options:
                               Download external images from HTML (default: True)
   --html-base-url TEXT        Base URL for resolving relative links in HTML
 
+  # DOCX-specific options
+  --docx-include-comments / --docx-no-include-comments
+                              Include comments and tracked changes (default: False)
+  --docx-include-headers-footers / --docx-no-include-headers-footers
+                              Include headers and footers (default: False)
+
   -v, --verbose               Verbose output
   --help                      Show this message and exit
 ```
@@ -284,6 +296,49 @@ pip install -r requirements-html.txt
 # Or install with optional HTML support
 pip install -e ".[html]"
 ```
+
+### DOCX to Markdown Conversion
+
+Convert DOCX files with dual-converter support:
+
+```bash
+# Basic DOCX conversion (uses pypandoc if available, falls back to mammoth)
+pdf2md convert document.docx -o output.md
+
+# Include comments and tracked changes
+pdf2md convert document.docx --docx-include-comments
+
+# Include headers and footers
+pdf2md convert document.docx --docx-include-headers-footers
+
+# Combine options
+pdf2md convert document.docx --docx-include-comments --docx-include-headers-footers
+```
+
+**DOCX Conversion Features:**
+- ✅ Dual converter support: pypandoc (primary) + mammoth (fallback)
+- ✅ Formatting preservation (bold, italic, headings, lists)
+- ✅ Table extraction with automatic header detection
+- ✅ Image extraction with metadata
+- ✅ Optional comments and tracked changes
+- ✅ Optional headers and footers
+- ✅ Document metadata extraction (title, author, etc.)
+
+**Installation:**
+```bash
+# Install DOCX conversion dependencies
+pip install -r requirements-docx.txt
+
+# Or install with optional DOCX support
+pip install -e ".[docx]"
+
+# For pypandoc support (recommended), install pandoc:
+# Ubuntu/Debian: sudo apt-get install pandoc
+# macOS: brew install pandoc
+# Windows: choco install pandoc
+```
+
+**Note**: pypandoc requires the pandoc system package. If pandoc is not installed, the converter automatically falls back to mammoth.
 
 ### Batch Processing
 

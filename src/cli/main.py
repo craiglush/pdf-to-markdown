@@ -93,6 +93,17 @@ def convert(
         "--html-base-url",
         help="Base URL for resolving relative links in HTML",
     ),
+    # DOCX-specific options
+    docx_include_comments: bool = typer.Option(
+        False,
+        "--docx-include-comments/--docx-no-include-comments",
+        help="Include comments and tracked changes in DOCX conversion",
+    ),
+    docx_include_headers_footers: bool = typer.Option(
+        False,
+        "--docx-include-headers-footers/--docx-no-include-headers-footers",
+        help="Include headers and footers from DOCX",
+    ),
     verbose: bool = typer.Option(
         False,
         "--verbose",
@@ -109,6 +120,7 @@ def convert(
         pdf2md convert document.pdf -o output.md --images embed
         pdf2md convert page.html -o output.md --html-base-url https://example.com
         pdf2md convert report.docx -o output.md
+        pdf2md convert document.docx --docx-include-comments
     """
     try:
         # Determine output path
@@ -128,6 +140,9 @@ def convert(
             # HTML-specific options
             html_download_images=html_download_images,
             html_base_url=html_base_url,
+            # DOCX-specific options
+            docx_include_comments=docx_include_comments,
+            docx_include_headers_footers=docx_include_headers_footers,
         )
 
         # Create orchestrator and convert
@@ -451,7 +466,9 @@ def check() -> None:
         "pytesseract": "OCR support for scanned PDFs",
         "markdownify": "HTML to Markdown conversion",
         "beautifulsoup4": "HTML parsing and preprocessing",
-        "pypandoc": "DOCX to Markdown conversion",
+        "pypandoc": "DOCX to Markdown conversion (primary)",
+        "mammoth": "DOCX to Markdown conversion (fallback)",
+        "python-docx": "DOCX metadata and image extraction",
         "pandas": "XLSX to Markdown conversion",
         "streamlit": "Web UI interface",
         "fastapi": "REST API server",

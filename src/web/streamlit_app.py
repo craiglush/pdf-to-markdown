@@ -113,14 +113,27 @@ def main() -> None:
             placeholder="https://example.com"
         )
 
+        st.subheader("DOCX Options")
+        docx_include_comments = st.checkbox(
+            "Include Comments",
+            value=False,
+            help="Include comments and tracked changes in DOCX conversion"
+        )
+
+        docx_include_headers_footers = st.checkbox(
+            "Include Headers/Footers",
+            value=False,
+            help="Include headers and footers from DOCX"
+        )
+
         st.markdown("---")
         st.markdown("### About")
         st.markdown(
             "Convert documents to Markdown with support for:\n"
             "- **PDF:** Complex tables, images, OCR for scanned PDFs\n"
             "- **HTML:** External images, relative links, semantic tags\n"
-            "- **DOCX:** Formatting, tables, images (coming soon)\n"
-            "- **XLSX:** Spreadsheets, charts (coming soon)"
+            "- **DOCX:** Formatting, tables, images (pypandoc or mammoth)\n"
+            "- **XLSX:** Spreadsheets, charts (coming in Phase 4)"
         )
 
     # Main content area
@@ -156,6 +169,8 @@ def main() -> None:
                     page_breaks=page_breaks,
                     html_download_images=html_download_images,
                     html_base_url=html_base_url or None,
+                    docx_include_comments=docx_include_comments,
+                    docx_include_headers_footers=docx_include_headers_footers,
                 )
 
                 if result:
@@ -288,6 +303,8 @@ def convert_document(
     page_breaks: bool,
     html_download_images: bool,
     html_base_url: Optional[str],
+    docx_include_comments: bool,
+    docx_include_headers_footers: bool,
 ) -> Optional[ConversionResult]:
     """
     Convert uploaded document file.
@@ -304,6 +321,8 @@ def convert_document(
         page_breaks: Include page breaks
         html_download_images: Download external images from HTML
         html_base_url: Base URL for resolving relative links in HTML
+        docx_include_comments: Include comments and tracked changes in DOCX
+        docx_include_headers_footers: Include headers and footers from DOCX
 
     Returns:
         ConversionResult or None if error
@@ -329,6 +348,8 @@ def convert_document(
             include_page_breaks=page_breaks,
             html_download_images=html_download_images,
             html_base_url=html_base_url,
+            docx_include_comments=docx_include_comments,
+            docx_include_headers_footers=docx_include_headers_footers,
         )
 
         # Convert

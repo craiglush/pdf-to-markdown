@@ -20,6 +20,12 @@ try:
 except ImportError:
     HTML_AVAILABLE = False
 
+try:
+    from pdf2markdown.converters.docx_converter import DOCXConverter
+    DOCX_AVAILABLE = True
+except ImportError:
+    DOCX_AVAILABLE = False
+
 console = Console()
 
 
@@ -71,11 +77,13 @@ class ConversionOrchestrator:
             if html_converter.is_available():
                 self._converters[('html', 'default')] = html_converter
 
-        # TODO: DOCX, XLSX converters will be added in future phases
-        # docx_converter = DOCXConverter(self.config)
-        # if docx_converter.is_available():
-        #     self._converters[('docx', 'default')] = docx_converter
+        # DOCX converter
+        if DOCX_AVAILABLE:
+            docx_converter = DOCXConverter(self.config)
+            if docx_converter.is_available():
+                self._converters[('docx', 'default')] = docx_converter
 
+        # TODO: XLSX converter will be added in Phase 4
         # xlsx_converter = XLSXConverter(self.config)
         # if xlsx_converter.is_available():
         #     self._converters[('xlsx', 'default')] = xlsx_converter
