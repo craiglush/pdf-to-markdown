@@ -1,0 +1,6 @@
+# HTML to Markdown conversion dependencies
+-r requirements.txt
+
+markdownify>=0.11.6
+beautifulsoup4>=4.12.0
+lxml>=4.9.0

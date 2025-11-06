@@ -1,15 +1,16 @@
 """Conversion orchestrator for intelligent converter selection and management."""
 
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 
-from pdf2markdown.converters.base import PDFConverter
+from pdf2markdown.converters.document_converter import DocumentConverter
 from pdf2markdown.converters.ocr_converter import OCRConverter
 from pdf2markdown.converters.pymupdf_converter import PyMuPDFConverter
 from pdf2markdown.core.config import Config, ConversionStrategy
+from pdf2markdown.core.file_detector import FileTypeDetector
 from pdf2markdown.core.models import ConversionResult
 
 console = Console()
@@ -17,10 +18,11 @@ console = Console()
 
 class ConversionOrchestrator:
     """
-    Orchestrates PDF to Markdown conversion with intelligent converter selection.
+    Orchestrates document to Markdown conversion with intelligent converter selection.
 
     The orchestrator:
-    - Analyzes the PDF to determine the best conversion strategy
+    - Detects file type (PDF, HTML, DOCX, XLSX)
+    - Analyzes the document to determine the best conversion strategy
     - Selects the appropriate converter
     - Handles fallback scenarios
     - Validates output quality
@@ -34,37 +36,54 @@ class ConversionOrchestrator:
             config: Configuration for conversion
         """
         self.config = config or Config()
-        self._converters: Dict[str, PDFConverter] = {}
+        self.file_detector = FileTypeDetector()
+
+        # Converter registry: {(file_type, strategy): converter}
+        self._converters: Dict[Tuple[str, str], DocumentConverter] = {}
         self._initialize_converters()
 
     def _initialize_converters(self) -> None:
         """Initialize all available converters."""
-        # Fast converter (PyMuPDF)
+        # PDF converters
         pymupdf_converter = PyMuPDFConverter(self.config)
         if pymupdf_converter.is_available():
-            self._converters[ConversionStrategy.FAST] = pymupdf_converter
+            self._converters[('pdf', ConversionStrategy.FAST.value)] = pymupdf_converter
 
-        # OCR converter
         ocr_converter = OCRConverter(self.config)
         if ocr_converter.is_available():
-            self._converters[ConversionStrategy.OCR] = ocr_converter
+            self._converters[('pdf', ConversionStrategy.OCR.value)] = ocr_converter
 
         # TODO: Add Marker converter when implementing accurate strategy
         # marker_converter = MarkerConverter(self.config)
         # if marker_converter.is_available():
-        #     self._converters[ConversionStrategy.ACCURATE] = marker_converter
+        #     self._converters[('pdf', ConversionStrategy.ACCURATE.value)] = marker_converter
+
+        # TODO: HTML, DOCX, XLSX converters will be added in future phases
+        # html_converter = HTMLConverter(self.config)
+        # if html_converter.is_available():
+        #     self._converters[('html', 'default')] = html_converter
+
+        # docx_converter = DOCXConverter(self.config)
+        # if docx_converter.is_available():
+        #     self._converters[('docx', 'default')] = docx_converter
+
+        # xlsx_converter = XLSXConverter(self.config)
+        # if xlsx_converter.is_available():
+        #     self._converters[('xlsx', 'default')] = xlsx_converter
 
     def convert(
         self,
-        pdf_path: Path | str,
+        file_path: Path | str,
         strategy: str | ConversionStrategy | None = None,
         **options
     ) -> ConversionResult:
         """
-        Convert a PDF to Markdown.
+        Convert a document to Markdown.
+
+        Supports multiple file formats: PDF, HTML, DOCX, XLSX (future).
 
         Args:
-            pdf_path: Path to the PDF file
+            file_path: Path to the document file
             strategy: Conversion strategy (auto, fast, accurate, ocr)
             **options: Additional configuration options
 
@@ -72,12 +91,18 @@ class ConversionOrchestrator:
             ConversionResult with markdown and metadata
 
         Raises:
-            FileNotFoundError: If PDF doesn't exist
-            ValueError: If no suitable converter is available
+            FileNotFoundError: If file doesn't exist
+            ValueError: If file type is not supported or no suitable converter available
         """
         # Normalize path
-        if isinstance(pdf_path, str):
-            pdf_path = Path(pdf_path)
+        if isinstance(file_path, str):
+            file_path = Path(file_path)
+
+        # Detect file type
+        try:
+            file_type = self.file_detector.detect(file_path)
+        except ValueError as e:
+            raise ValueError(f"Could not determine file type: {e}")
 
         # Update config with options
         if options:
@@ -94,20 +119,21 @@ class ConversionOrchestrator:
 
         # Auto-detect strategy if needed
         if strategy == ConversionStrategy.AUTO:
-            strategy = self._detect_best_strategy(pdf_path)
+            strategy = self._detect_best_strategy(file_path, file_type)
 
-        # Get converter
-        converter = self._get_converter(strategy)
+        # Get converter for file type and strategy
+        converter = self._get_converter_for_type(file_type, strategy)
 
         if not converter:
-            available = list(self._converters.keys())
+            available = self._get_available_strategies_for_type(file_type)
             raise ValueError(
-                f"No converter available for strategy '{strategy}'. "
-                f"Available strategies: {available}"
+                f"No converter available for {file_type.upper()} with strategy '{strategy.value}'. "
+                f"Available strategies for {file_type.upper()}: {available}"
             )
 
         # Log conversion start
-        console.print(f"[cyan]Converting:[/cyan] {pdf_path.name}")
+        console.print(f"[cyan]File Type:[/cyan] {file_type.upper()}")
+        console.print(f"[cyan]Converting:[/cyan] {file_path.name}")
         console.print(f"[cyan]Strategy:[/cyan] {strategy.value}")
         console.print(f"[cyan]Converter:[/cyan] {converter.get_name()}")
 
@@ -120,11 +146,11 @@ class ConversionOrchestrator:
             console=console,
         ) as progress:
             task = progress.add_task(
-                f"Converting {pdf_path.name}...",
+                f"Converting {file_path.name}...",
                 total=None,
             )
 
-            result = converter.convert(pdf_path)
+            result = converter.convert(file_path)
 
             progress.update(task, completed=True)
 
@@ -138,9 +164,31 @@ class ConversionOrchestrator:
 
         return result
 
-    def _detect_best_strategy(self, pdf_path: Path) -> ConversionStrategy:
+    def _detect_best_strategy(self, file_path: Path, file_type: str) -> ConversionStrategy:
         """
-        Automatically detect the best conversion strategy.
+        Automatically detect the best conversion strategy for a file.
+
+        Args:
+            file_path: Path to the file
+            file_type: Detected file type ('pdf', 'html', 'docx', 'xlsx')
+
+        Returns:
+            Recommended ConversionStrategy
+        """
+        # PDF-specific strategy detection
+        if file_type == 'pdf':
+            return self._detect_pdf_strategy(file_path)
+
+        # For other file types, check if we have a default converter
+        if (file_type, 'default') in self._converters:
+            return ConversionStrategy.FAST  # Use FAST as placeholder
+
+        # Fall back to FAST strategy
+        return ConversionStrategy.FAST
+
+    def _detect_pdf_strategy(self, pdf_path: Path) -> ConversionStrategy:
+        """
+        Detect best strategy specifically for PDF files.
 
         Args:
             pdf_path: Path to the PDF file
@@ -153,7 +201,7 @@ class ConversionOrchestrator:
 
         if is_scanned:
             console.print("[yellow]Detected scanned PDF (no text layer)[/yellow]")
-            if ConversionStrategy.OCR in self._converters:
+            if ('pdf', ConversionStrategy.OCR.value) in self._converters:
                 return ConversionStrategy.OCR
             else:
                 console.print(
@@ -199,17 +247,49 @@ class ConversionOrchestrator:
             # If we can't determine, assume not scanned
             return False
 
-    def _get_converter(self, strategy: ConversionStrategy) -> Optional[PDFConverter]:
+    def _get_converter_for_type(
+        self,
+        file_type: str,
+        strategy: ConversionStrategy
+    ) -> Optional[DocumentConverter]:
         """
-        Get converter for the given strategy.
+        Get converter for the given file type and strategy.
 
         Args:
+            file_type: File type ('pdf', 'html', 'docx', 'xlsx')
             strategy: Conversion strategy
 
         Returns:
-            PDFConverter instance or None
+            DocumentConverter instance or None
         """
-        return self._converters.get(strategy)
+        # Try exact match first
+        key = (file_type, strategy.value)
+        if key in self._converters:
+            return self._converters[key]
+
+        # Try 'default' strategy for non-PDF formats
+        if file_type != 'pdf':
+            default_key = (file_type, 'default')
+            if default_key in self._converters:
+                return self._converters[default_key]
+
+        return None
+
+    def _get_available_strategies_for_type(self, file_type: str) -> list[str]:
+        """
+        Get list of available strategies for a file type.
+
+        Args:
+            file_type: File type
+
+        Returns:
+            List of available strategy names
+        """
+        strategies = []
+        for (ft, strategy) in self._converters.keys():
+            if ft == file_type:
+                strategies.append(strategy)
+        return strategies
 
     def _validate_result(self, result: ConversionResult) -> None:
         """
@@ -225,7 +305,7 @@ class ConversionOrchestrator:
 
         # Check if output is suspiciously short
         if result.metadata.total_words < 10 and result.metadata.page_count > 1:
-            warnings.append("Very little text extracted - PDF may be scanned or contain mostly images")
+            warnings.append("Very little text extracted - document may be scanned or contain mostly images")
 
         # Check for errors
         if result.metadata.errors:
@@ -235,30 +315,56 @@ class ConversionOrchestrator:
         if warnings:
             result.metadata.warnings.extend(warnings)
 
-    def list_available_converters(self) -> Dict[str, bool]:
+    def list_available_converters(self) -> Dict[str, Dict[str, bool]]:
         """
-        List all converters and their availability.
+        List all converters and their availability by file type.
 
         Returns:
-            Dictionary mapping strategy to availability
+            Dictionary mapping file type to {strategy: availability}
         """
-        return {
-            ConversionStrategy.FAST: ConversionStrategy.FAST in self._converters,
-            ConversionStrategy.ACCURATE: ConversionStrategy.ACCURATE in self._converters,
-            ConversionStrategy.OCR: ConversionStrategy.OCR in self._converters,
+        result: Dict[str, Dict[str, bool]] = {}
+
+        # PDF converters
+        result['pdf'] = {
+            ConversionStrategy.FAST.value: ('pdf', ConversionStrategy.FAST.value) in self._converters,
+            ConversionStrategy.ACCURATE.value: ('pdf', ConversionStrategy.ACCURATE.value) in self._converters,
+            ConversionStrategy.OCR.value: ('pdf', ConversionStrategy.OCR.value) in self._converters,
         }
 
-    def get_converter_info(self, strategy: ConversionStrategy) -> Optional[str]:
+        # Other file types (future)
+        for file_type in ['html', 'docx', 'xlsx']:
+            if any(ft == file_type for ft, _ in self._converters.keys()):
+                result[file_type] = {
+                    'default': (file_type, 'default') in self._converters
+                }
+
+        return result
+
+    def get_converter_info(self, file_type: str, strategy: str = 'default') -> Optional[str]:
         """
         Get information about a specific converter.
 
         Args:
+            file_type: File type ('pdf', 'html', 'docx', 'xlsx')
             strategy: Conversion strategy
 
         Returns:
             Converter information string or None
         """
-        converter = self._get_converter(strategy)
+        key = (file_type, strategy)
+        converter = self._converters.get(key)
         if converter:
             return f"{converter.get_name()} - OCR: {converter.supports_ocr()}"
         return None
+
+    def get_supported_file_types(self) -> list[str]:
+        """
+        Get list of supported file types.
+
+        Returns:
+            List of supported file type strings
+        """
+        file_types = set()
+        for file_type, _ in self._converters.keys():
+            file_types.add(file_type)
+        return sorted(file_types)

@@ -1,0 +1,4 @@
+# All format support (HTML, DOCX, XLSX)
+-r requirements-html.txt
+-r requirements-docx.txt
+-r requirements-xlsx.txt

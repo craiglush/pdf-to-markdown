@@ -1,0 +1,6 @@
+# DOCX to Markdown conversion dependencies
+-r requirements.txt
+
+pypandoc>=1.11
+mammoth>=1.6.0
+python-docx>=1.1.0

@@ -1,4 +1,4 @@
-"""Configuration classes and enums for PDF to Markdown conversion."""
+"""Configuration classes and enums for document to Markdown conversion."""
 
 from enum import Enum
 from pathlib import Path
@@ -35,7 +35,7 @@ class TableFormat(str, Enum):
 
 
 class Config(BaseModel):
-    """Configuration for PDF conversion."""
+    """Configuration for document conversion (PDF, HTML, DOCX, XLSX)."""
 
     # Strategy selection
     strategy: ConversionStrategy = Field(
@@ -143,6 +143,62 @@ class Config(BaseModel):
         description="Validate output quality"
     )
 
+    # General table settings (applies to all formats)
+    max_table_width: int = Field(
+        default=120,
+        description="Maximum table width in characters (wider tables use HTML or CSV)"
+    )
+
+    # HTML-specific settings
+    html_preserve_semantic: bool = Field(
+        default=False,
+        description="Preserve semantic HTML tags in markdown comments"
+    )
+    html_download_images: bool = Field(
+        default=True,
+        description="Download and save remote images from HTML"
+    )
+    html_base_url: Optional[str] = Field(
+        default=None,
+        description="Base URL for resolving relative URLs in HTML"
+    )
+
+    # DOCX-specific settings
+    docx_include_comments: bool = Field(
+        default=False,
+        description="Include document comments in output"
+    )
+    docx_include_headers_footers: bool = Field(
+        default=True,
+        description="Include headers and footers in output"
+    )
+    docx_show_changes: bool = Field(
+        default=False,
+        description="Show tracked changes in output"
+    )
+
+    # XLSX-specific settings
+    xlsx_mode: str = Field(
+        default="combined",
+        description="Multi-sheet handling: 'combined', 'separate', or 'selected'"
+    )
+    xlsx_sheets: Optional[list[str]] = Field(
+        default=None,
+        description="List of sheet names to convert (for 'selected' mode)"
+    )
+    xlsx_show_formulas: bool = Field(
+        default=False,
+        description="Show formulas alongside values"
+    )
+    xlsx_extract_charts: bool = Field(
+        default=True,
+        description="Extract charts as images"
+    )
+    xlsx_max_sheet_width: int = Field(
+        default=100,
+        description="Maximum number of columns per sheet"
+    )
+
     class Config:
         """Pydantic configuration."""
         use_enum_values = True
@@ -152,7 +208,7 @@ class AppSettings(BaseSettings):
     """Application-level settings (environment variables)."""
 
     # Application
-    app_name: str = Field(default="PDF to Markdown Converter")
+    app_name: str = Field(default="Document to Markdown Converter")
     debug: bool = Field(default=False)
     log_level: str = Field(default="INFO")
 
