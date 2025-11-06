@@ -1,81 +1,153 @@
-# Document to Markdown Converter
+# Multi-Format Document to Markdown Converter v2.0
 
-A high-fidelity document to Markdown converter with support for **PDF**, **HTML**, **DOCX**, and **XLSX** files. Features include complex table extraction, image handling, multi-column layouts, and OCR for scanned PDFs.
+A high-fidelity document to Markdown converter powered by **Microsoft MarkItDown**. Supports **13+ file formats** including PDF, DOCX, XLSX, PPTX, HTML, images (with OCR), audio (with transcription), EPub books, and more.
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Version](https://img.shields.io/badge/version-2.0.0-green.svg)](https://github.com/yourusername/pdf2markdown)
+
+## ✨ What's New in v2.0
+
+**Major Release** - Complete rewrite powered by Microsoft MarkItDown!
+
+- 🚀 **13+ Format Support**: PDF, DOCX, XLSX, PPTX, HTML, images, audio, EPub, ZIP, MSG, and more
+- 🤖 **AI-Powered Features**: Optional OpenAI GPT-4 for image descriptions
+- ☁️ **Azure Integration**: High-accuracy PDF conversion with Azure Document Intelligence
+- 🎵 **Audio Transcription**: Convert audio files (WAV, MP3, M4A) to text
+- 🎥 **YouTube Support**: Extract video transcripts directly from URLs
+- 📚 **E-book Support**: Convert EPub books to Markdown
+- 🖼️ **Enhanced OCR**: Built-in image OCR with AI descriptions
+- 🎨 **Modern UI**: Redesigned Streamlit interface with batch processing
+- 🔄 **Backward Compatible**: Legacy converters still available (deprecated)
 
 ## Features
 
-### Multi-Format Support
-- 📄 **PDF**: Fast conversion (0.12s/page), OCR for scanned documents, multi-column layouts
-- 🌐 **HTML**: External image download, relative link resolution, semantic tag preservation
-- 📝 **DOCX**: Dual converter (pypandoc + mammoth fallback), formatting preservation, table extraction
-- 📊 **XLSX**: Spreadsheet conversion with pandas, multi-sheet handling, chart extraction
+### Supported Formats
+
+#### 📄 Documents
+- **PDF** - Portable Document Format with OCR support
+- **DOCX** - Microsoft Word documents with formatting
+- **XLSX** - Excel spreadsheets with charts and images
+- **PPTX** - PowerPoint presentations
+
+#### 🌐 Web & Data
+- **HTML** - Web pages with external images
+- **XML** - Structured XML documents
+- **JSON** - JSON data files
+- **CSV** - Comma-separated values
+
+#### 🖼️ Images (with OCR)
+- **JPG/JPEG** - JPEG images with optional OCR
+- **PNG** - PNG images with optional OCR
+- **GIF** - GIF images with optional OCR
+- **BMP** - Bitmap images with optional OCR
+
+#### 🎵 Audio (with Transcription)
+- **WAV** - WAV audio with speech-to-text
+- **MP3** - MP3 audio with speech-to-text
+- **M4A** - M4A audio with speech-to-text
+
+#### 📦 Other Formats
+- **EPub** - E-book format
+- **ZIP** - Archive files
+- **MSG** - Outlook email messages
+- **YouTube** - Video transcript extraction
 
 ### Core Capabilities
-- ✅ **Fast Conversion**: 0.12s per page with PyMuPDF4LLM
-- 📊 **Complex Tables**: Automatic header detection and table extraction
-- 🖼️ **Image Handling**: Base64 embedding, external download, or separate file export
+
+- ✅ **Universal Format Support**: 13+ formats via Microsoft MarkItDown
+- 🤖 **AI-Powered**: Optional GPT-4 image descriptions
+- ☁️ **Cloud Integration**: Azure Document Intelligence for PDFs
+- 📊 **Complex Tables**: Automatic header detection and extraction
+- 🖼️ **Smart Images**: Base64 embedding, external download, or separate export
 - 📝 **Text Formatting**: Preserves bold, italic, headers, and lists
-- 🔍 **OCR Support**: Tesseract integration for scanned PDFs
+- 🔍 **Advanced OCR**: Image OCR with optional AI descriptions
 - 🎯 **Multiple Interfaces**: CLI, Web UI (Streamlit), REST API (FastAPI)
-- 🐳 **Docker Ready**: Containerized deployment options
+- 🐳 **Docker Ready**: Containerized deployment
+- ⚡ **Batch Processing**: Convert multiple files in parallel
 
 ## Quick Start
 
 ### Installation
 
-#### Option 1: pip install (Recommended)
+#### Core Installation (MarkItDown only)
 
 ```bash
 # Clone the repository
 git clone https://github.com/yourusername/pdf2markdown.git
 cd pdf2markdown
 
-# Install with pip
+# Install core dependencies
 pip install -r requirements.txt
 pip install -e .
 ```
 
-#### Option 2: Docker
+#### With AI Features (Optional)
 
 ```bash
-# Build Docker image
-docker-compose build
+# Install LLM support (OpenAI GPT-4 for image descriptions)
+pip install -r requirements-markitdown.txt
 
-# Run CLI
-docker-compose run --rm cli pdf2md convert /input/document.pdf -o /output/document.md
+# Or install specific feature sets
+pip install openai>=1.0.0  # For AI image descriptions
 
-# Start web UI
-docker-compose --profile web up streamlit
+# For Azure Document Intelligence (high-accuracy PDFs)
+pip install azure-ai-formrecognizer>=3.3.0
 
-# Start REST API
-docker-compose --profile api up api
+# For YouTube transcript extraction
+pip install youtube-transcript-api>=0.6.0
+
+# For audio transcription
+pip install SpeechRecognition>=3.10.0 pydub>=0.25.1
+```
+
+#### Legacy Converters (Deprecated, Optional)
+
+```bash
+# Install legacy format-specific converters (for backward compatibility)
+pip install -r requirements-legacy.txt
+```
+
+### Environment Configuration
+
+Create a `.env` file for advanced features:
+
+```bash
+# LLM Configuration (Optional - for AI image descriptions)
+PDF2MD_LLM_ENABLED=true
+OPENAI_API_KEY=your_openai_api_key_here
+PDF2MD_LLM_MODEL=gpt-4o
+
+# Azure Document Intelligence (Optional - for high-accuracy PDFs)
+AZURE_DOCINTEL_ENDPOINT=https://your-resource.cognitiveservices.azure.com/
+AZURE_DOCINTEL_KEY=your_azure_key_here
+PDF2MD_AZURE_ENABLED=true
+
+# Conversion Settings
+PDF2MD_RICH_CONVERSION=false  # Extract detailed metadata
+PDF2MD_USE_MARKITDOWN=true    # Use MarkItDown (recommended)
 ```
 
 ### Basic Usage
 
-#### Command Line
+#### Command Line (v2.0)
 
 ```bash
-# Convert a PDF to Markdown
+# Convert any supported file to Markdown
 pdf2md convert document.pdf -o output.md
+pdf2md convert presentation.pptx -o output.md
+pdf2md convert spreadsheet.xlsx -o output.md
+pdf2md convert image.jpg -o output.md
+pdf2md convert audio.mp3 -o output.md
 
-# Convert an HTML file to Markdown
-pdf2md convert page.html -o output.md
+# With AI image descriptions (requires OpenAI API key)
+pdf2md convert document.pdf --llm-descriptions --llm-model gpt-4o
 
-# Convert a DOCX file to Markdown
-pdf2md convert report.docx -o output.md
+# With Azure Document Intelligence (for high-accuracy PDFs)
+pdf2md convert scanned.pdf --azure
 
-# Convert DOCX with comments and tracked changes
-pdf2md convert report.docx --docx-include-comments
-
-# Convert with base URL for relative links (HTML)
-pdf2md convert page.html --html-base-url https://example.com
-
-# Auto-detect scanned PDFs and use OCR
-pdf2md convert scanned.pdf -o output.md --strategy auto
+# With rich metadata extraction
+pdf2md convert document.pdf --rich-metadata
 
 # Embed images as base64
 pdf2md convert document.pdf --images embed
@@ -83,37 +155,48 @@ pdf2md convert document.pdf --images embed
 # Extract images to separate files
 pdf2md convert document.pdf --images link
 
-# Batch convert multiple files (supports PDF, HTML, DOCX, XLSX)
-pdf2md batch ./docs/ --pattern "*.html" --output ./markdown/
-pdf2md batch ./pdfs/ --output ./markdown/ --parallel 4
+# Batch convert multiple files
+pdf2md batch ./docs/ --pattern "*.pdf" --output ./markdown/
+pdf2md batch ./documents/ --output ./markdown/ --parallel 4
 
-# Get PDF information
-pdf2md info document.pdf
+# YouTube transcript extraction
+# (MarkItDown will handle YouTube URLs automatically)
 
-# Check converter availability
+# Check available converters
 pdf2md check
 ```
 
-#### Python API
+#### Python API (v2.0)
 
 ```python
 from pdf2markdown import convert_pdf
+from pdf2markdown.core.config import Config
+from pdf2markdown.core.orchestrator import ConversionOrchestrator
 
-# Simple conversion
+# Simple conversion (uses MarkItDown by default)
 markdown = convert_pdf("document.pdf", output_path="output.md")
 
-# With custom options
-markdown = convert_pdf(
-    "document.pdf",
-    strategy="auto",
-    extract_images=True,
-    extract_tables=True,
-    ocr_enabled=False,
+# With AI features
+config = Config(
+    use_markitdown=True,
+    llm_enabled=True,
+    llm_model="gpt-4o",
+    azure_enabled=False,
+    rich_conversion=True,
 )
-print(markdown)
+
+orchestrator = ConversionOrchestrator(config)
+result = orchestrator.convert("document.pdf")
+
+print(result.markdown)
+print(f"Extracted {len(result.images)} images")
+print(f"Extracted {len(result.tables)} tables")
+
+# Save with images
+result.save("output.md", save_images=True)
 ```
 
-#### Web UI
+#### Web UI (v2.0 - Redesigned!)
 
 ```bash
 # Start Streamlit interface
@@ -124,6 +207,14 @@ streamlit run src/web/streamlit_app.py
 ```
 
 Visit http://localhost:8501 in your browser.
+
+**New v2.0 Features:**
+- 📤 Upload & Convert tab with 13+ format support
+- 📚 Formats Gallery showcasing all supported formats
+- ⚡ Batch Processing with progress tracking
+- 🔑 API Settings for OpenAI and Azure credentials
+- 🎨 Modern sidebar with all configuration options
+- 🖼️ Enhanced image pagination and preview
 
 #### REST API
 
@@ -140,27 +231,33 @@ API documentation at http://localhost:8000/docs
 Example API usage:
 
 ```bash
-# Convert a PDF
+# Convert any supported file
 curl -X POST "http://localhost:8000/convert" \
   -F "file=@document.pdf" \
-  -F "strategy=auto" \
-  -F "image_mode=embed"
+  -F "use_markitdown=true" \
+  -F "llm_enabled=false"
+
+# With AI features
+curl -X POST "http://localhost:8000/convert" \
+  -F "file=@document.pdf" \
+  -F "llm_enabled=true" \
+  -F "llm_model=gpt-4o"
+
+# Check supported formats
+curl http://localhost:8000/formats
 
 # Check health
 curl http://localhost:8000/health
-
-# List available converters
-curl http://localhost:8000/converters
 ```
 
 ## Configuration
 
 ### Conversion Strategies
 
-- **auto**: Automatically detect best strategy (default)
-- **fast**: PyMuPDF4LLM - fastest (0.12s/page)
-- **accurate**: Marker AI - highest accuracy (11.3s/page, requires additional installation)
-- **ocr**: Tesseract OCR - for scanned PDFs (3s/page)
+- **markitdown**: Microsoft MarkItDown - supports all formats (default)
+- **auto**: Automatically detect best converter (legacy mode)
+- **fast**: PyMuPDF (PDF only, deprecated in v2.0)
+- **ocr**: Tesseract OCR (PDF only, deprecated in v2.0)
 
 ### Image Modes
 
@@ -175,45 +272,49 @@ curl http://localhost:8000/converters
 - **grid**: Grid-style tables
 - **html**: HTML tables for complex structures
 
-### CLI Options
+### CLI Options (v2.0)
 
 ```
 pdf2md convert [OPTIONS] INPUT_FILE
 
-Supported formats: PDF, HTML, DOCX, XLSX
+Supported formats: PDF, DOCX, XLSX, PPTX, HTML, JPG, PNG, GIF, BMP,
+                   WAV, MP3, M4A, EPub, ZIP, MSG, CSV, XML, JSON
 
 Options:
   -o, --output PATH           Output file path
-  -s, --strategy [auto|fast|accurate|ocr]
-                              Conversion strategy (default: auto, mainly for PDFs)
+  -s, --strategy [markitdown|auto|fast|ocr]
+                              Conversion strategy (default: markitdown)
+
+  # MarkItDown v2.0 Options
+  --markitdown / --legacy     Use MarkItDown (default: True)
+  --rich-metadata / --simple  Extract rich metadata (default: False)
+  --llm-descriptions          Enable AI image descriptions (requires OpenAI)
+  --llm-model TEXT            LLM model to use (default: gpt-4o)
+  --azure                     Use Azure Document Intelligence for PDFs
+
+  # Image Options
   -i, --images [embed|link|separate]
                               Image handling mode (default: embed)
   --extract-images / --no-extract-images
                               Extract images (default: True)
+
+  # Table Options
   --extract-tables / --no-extract-tables
                               Extract tables (default: True)
   -t, --table-format [github|pipe|grid|html]
                               Table format (default: github)
-  --ocr                       Force OCR for scanned PDFs
+
+  # OCR Options
+  --ocr                       Force OCR
   --ocr-lang TEXT             Tesseract language code (default: eng)
+
+  # Format-specific options (PDF, HTML, DOCX, XLSX)
   --page-breaks               Include page break markers (PDFs only)
-
-  # HTML-specific options
-  --html-download-images / --html-no-download-images
-                              Download external images from HTML (default: True)
-  --html-base-url TEXT        Base URL for resolving relative links in HTML
-
-  # DOCX-specific options
-  --docx-include-comments / --docx-no-include-comments
-                              Include comments and tracked changes (default: False)
-  --docx-include-headers-footers / --docx-no-include-headers-footers
-                              Include headers and footers (default: False)
-
-  # XLSX-specific options
-  --xlsx-mode TEXT            Multi-sheet handling: combined, separate, or selected (default: combined)
-  --xlsx-sheets TEXT          Comma-separated list of sheet names for 'selected' mode
-  --xlsx-extract-charts / --xlsx-no-extract-charts
-                              Extract charts as images (default: True)
+  --html-download-images      Download external images from HTML
+  --html-base-url TEXT        Base URL for resolving relative links
+  --docx-include-comments     Include comments and tracked changes
+  --xlsx-mode TEXT            Multi-sheet handling (combined/separate/selected)
+  --xlsx-sheets TEXT          Comma-separated sheet names
 
   -v, --verbose               Verbose output
   --help                      Show this message and exit
@@ -221,235 +322,90 @@ Options:
 
 ## Advanced Features
 
-### OCR for Scanned PDFs
+### AI-Powered Image Descriptions
 
-Install Tesseract OCR:
-
-```bash
-# Ubuntu/Debian
-sudo apt-get install tesseract-ocr tesseract-ocr-eng
-
-# macOS
-brew install tesseract tesseract-lang
-
-# Windows (via Chocolatey)
-choco install tesseract
-```
-
-Use OCR:
+Enable GPT-4 powered image descriptions:
 
 ```bash
-# Auto-detect and apply OCR if needed
-pdf2md convert scanned.pdf --strategy auto
+# Set OpenAI API key
+export OPENAI_API_KEY=your_key_here
 
-# Force OCR
-pdf2md convert document.pdf --ocr --ocr-lang eng
+# Convert with AI descriptions
+pdf2md convert document.pdf --llm-descriptions --llm-model gpt-4o
 
-# Multiple languages
-pdf2md convert document.pdf --ocr --ocr-lang eng+fra
+# Or in Python
+config = Config(
+    llm_enabled=True,
+    llm_model="gpt-4o",
+    llm_prompt="Describe this image in detail for a technical document"
+)
 ```
 
-### High-Accuracy AI Conversion (Optional)
+### Azure Document Intelligence
 
-Install Marker for highest accuracy:
+For high-accuracy PDF conversion:
 
 ```bash
-pip install marker-pdf torch
+# Set Azure credentials
+export AZURE_DOCINTEL_ENDPOINT=https://your-resource.cognitiveservices.azure.com/
+export AZURE_DOCINTEL_KEY=your_key_here
+
+# Convert with Azure
+pdf2md convert scanned.pdf --azure
+
+# Or in Python
+config = Config(azure_enabled=True)
 ```
 
-Use accurate strategy:
+### Audio Transcription
+
+Convert audio files to text:
 
 ```bash
-pdf2md convert document.pdf --strategy accurate
+# Requires: pip install SpeechRecognition pydub
+
+pdf2md convert meeting.wav -o transcript.md
+pdf2md convert podcast.mp3 -o transcript.md
 ```
 
-**Note**: First run downloads ~1GB model, requires more resources but provides 95-99% accuracy.
+### YouTube Transcripts
 
-### HTML to Markdown Conversion
-
-Convert HTML files with advanced features:
+Extract YouTube video transcripts:
 
 ```bash
-# Basic HTML conversion
-pdf2md convert page.html -o output.md
+# Requires: pip install youtube-transcript-api
 
-# Download external images (default: True)
-pdf2md convert page.html --html-download-images
-
-# Keep external images as links (faster)
-pdf2md convert page.html --html-no-download-images
-
-# Resolve relative links with base URL
-pdf2md convert page.html --html-base-url https://example.com/docs/
-
-# Combine with image embedding
-pdf2md convert page.html --images embed --html-download-images
+# MarkItDown handles YouTube URLs automatically
+# Provide the URL via the Streamlit UI or API
 ```
 
-**HTML Conversion Features:**
-- ✅ Semantic HTML preservation (headings, lists, code blocks, tables)
-- ✅ External image download and embedding
-- ✅ Relative link resolution with configurable base URL
-- ✅ Data URI image handling
-- ✅ Malformed HTML handling (via BeautifulSoup)
-- ✅ Table extraction with automatic header detection
+### Rich Metadata Extraction
 
-**Installation:**
-```bash
-# Install HTML conversion dependencies
-pip install -r requirements-html.txt
-
-# Or install with optional HTML support
-pip install -e ".[html]"
-```
-
-### DOCX to Markdown Conversion
-
-Convert DOCX files with dual-converter support:
+Extract detailed metadata using format-specific libraries:
 
 ```bash
-# Basic DOCX conversion (uses pypandoc if available, falls back to mammoth)
-pdf2md convert document.docx -o output.md
+pdf2md convert document.pdf --rich-metadata
 
-# Include comments and tracked changes
-pdf2md convert document.docx --docx-include-comments
-
-# Include headers and footers
-pdf2md convert document.docx --docx-include-headers-footers
-
-# Combine options
-pdf2md convert document.docx --docx-include-comments --docx-include-headers-footers
+# Extracts: author, title, creation date, keywords, etc.
 ```
-
-**DOCX Conversion Features:**
-- ✅ Dual converter support: pypandoc (primary) + mammoth (fallback)
-- ✅ Formatting preservation (bold, italic, headings, lists)
-- ✅ Table extraction with automatic header detection
-- ✅ Image extraction with metadata
-- ✅ Optional comments and tracked changes
-- ✅ Optional headers and footers
-- ✅ Document metadata extraction (title, author, etc.)
-
-**Installation:**
-```bash
-# Install DOCX conversion dependencies
-pip install -r requirements-docx.txt
-
-# Or install with optional DOCX support
-pip install -e ".[docx]"
-
-# For pypandoc support (recommended), install pandoc:
-# Ubuntu/Debian: sudo apt-get install pandoc
-# macOS: brew install pandoc
-# Windows: choco install pandoc
-```
-
-**Note**: pypandoc requires the pandoc system package. If pandoc is not installed, the converter automatically falls back to mammoth.
-
-### XLSX to Markdown Conversion
-
-Convert Excel spreadsheets with powerful multi-sheet handling:
-
-```bash
-# Basic XLSX conversion (combines all sheets)
-pdf2md convert spreadsheet.xlsx -o output.md
-
-# Separate mode: Each sheet as its own section
-pdf2md convert workbook.xlsx -o output.md --xlsx-mode separate
-
-# Selected mode: Convert specific sheets only
-pdf2md convert workbook.xlsx --xlsx-mode selected --xlsx-sheets "Sheet1,Sheet3"
-
-# Extract charts as images
-pdf2md convert report.xlsx --xlsx-extract-charts
-
-# Combine options
-pdf2md convert financial.xlsx --xlsx-mode combined --images embed
-```
-
-**XLSX Conversion Features:**
-- ✅ Multi-sheet handling (combined, separate, selected)
-- ✅ Table conversion with pandas (supports all table formats)
-- ✅ Chart extraction as images using openpyxl
-- ✅ Embedded image extraction
-- ✅ Wide table handling (auto-truncation for readability)
-- ✅ Formula display support
-- ✅ Metadata extraction (author, title, creation date)
-- ✅ Support for .xlsx, .xls, and .xlsm formats
-
-**Multi-Sheet Modes:**
-- **combined**: All sheets in one document with headers
-- **separate**: Each sheet as a separate section
-- **selected**: Only specific sheets (use --xlsx-sheets)
-
-**Installation:**
-```bash
-# Install XLSX conversion dependencies
-pip install -r requirements-xlsx.txt
-
-# Or install with optional XLSX support
-pip install -e ".[xlsx]"
-
-# Dependencies: pandas, openpyxl, Pillow
-```
-
-**Note**: pandas and openpyxl are required for XLSX conversion. Install them to enable this feature.
 
 ### Batch Processing
 
 ```bash
-# Convert all PDFs in a directory
-pdf2md batch ./pdfs/ --output ./markdown/
+# Convert all files in a directory
+pdf2md batch ./documents/ --output ./markdown/
 
-# Recursive search
-pdf2md batch ./documents/ --recursive --pattern "*.pdf"
+# Specific pattern
+pdf2md batch ./documents/ --pattern "*.pdf" --recursive
 
-# Parallel processing
-pdf2md batch ./pdfs/ --parallel 8
+# Parallel processing (8 workers)
+pdf2md batch ./documents/ --parallel 8
 
 # Stop on first error
-pdf2md batch ./pdfs/ --fail-fast
+pdf2md batch ./documents/ --fail-fast
 ```
 
-### Python API Advanced Usage
-
-```python
-from pdf2markdown.core.config import Config, ConversionStrategy, ImageMode
-from pdf2markdown.core.orchestrator import ConversionOrchestrator
-
-# Custom configuration
-config = Config(
-    strategy=ConversionStrategy.FAST,
-    image_mode=ImageMode.LINK,
-    extract_images=True,
-    extract_tables=True,
-    table_format="github",
-    ocr_enabled=True,
-    ocr_language="eng+fra",
-    include_page_breaks=True,
-)
-
-# Convert with custom config
-orchestrator = ConversionOrchestrator(config)
-result = orchestrator.convert("document.pdf")
-
-# Access results
-print(result.markdown)
-print(f"Extracted {len(result.images)} images")
-print(f"Extracted {len(result.tables)} tables")
-
-# Save to files
-result.save("output.md", save_images=True)
-
-# Get summary
-print(result.get_summary())
-```
-
-## Docker Deployment
-
-**Full Format Support**: The Docker images now include all format converters (PDF, HTML, DOCX, XLSX) with their required dependencies pre-installed.
-
-### Quick Start with Docker
+### Docker Deployment
 
 ```bash
 # Build all images
@@ -465,132 +421,164 @@ docker-compose --profile web up streamlit
 # Start REST API
 docker-compose --profile api up api
 # API docs at http://localhost:8000/docs
-
-# Verify all converters are available
-docker-compose run --rm cli pdf2md check
-```
-
-### Development
-
-```bash
-# Start development environment
-docker-compose --profile dev up -d dev
-docker-compose exec dev bash
-```
-
-### Production
-
-```yaml
-# docker-compose.prod.yml
-version: '3.8'
-
-services:
-  api:
-    image: pdf2markdown:api
-    ports:
-      - "8000:8000"
-    environment:
-      - PDF2MD_API_WORKERS=8
-      - PDF2MD_DEBUG=false
-    deploy:
-      replicas: 3
-      resources:
-        limits:
-          cpus: '2'
-          memory: 2G
-
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-    depends_on:
-      - api
-```
-
-Run:
-
-```bash
-docker-compose -f docker-compose.prod.yml up -d
 ```
 
 ## Architecture
 
+### v2.0 Architecture
+
 ```
 pdf-to-markdown/
 ├── src/
-│   ├── converters/          # PDF converter implementations
-│   │   ├── base.py          # Base converter interface
-│   │   ├── pymupdf_converter.py  # Fast converter
-│   │   └── ocr_converter.py      # OCR converter
-│   ├── processors/          # Document processors
+│   ├── converters/          # Converter implementations
+│   │   ├── document_converter.py    # Base interface
+│   │   ├── markitdown_converter.py  # v2.0 primary (13+ formats)
+│   │   ├── pymupdf_converter.py     # Legacy PDF (deprecated)
+│   │   ├── ocr_converter.py         # Legacy OCR (deprecated)
+│   │   ├── html_converter.py        # Legacy HTML (deprecated)
+│   │   ├── docx_converter.py        # Legacy DOCX (deprecated)
+│   │   └── xlsx_converter.py        # Legacy XLSX (deprecated)
 │   ├── core/                # Core logic
-│   │   ├── config.py        # Configuration
-│   │   ├── models.py        # Data models
-│   │   └── orchestrator.py # Conversion orchestration
+│   │   ├── config.py        # Configuration models
+│   │   ├── models.py        # Data models (ConversionResult, etc.)
+│   │   ├── orchestrator.py  # Converter selection & execution
+│   │   └── file_detector.py # File type detection
 │   ├── cli/                 # CLI interface
-│   │   └── main.py          # Typer CLI
+│   │   └── main.py          # Typer CLI with v2.0 commands
 │   ├── api/                 # REST API
-│   │   └── app.py           # FastAPI application
+│   │   └── app.py           # FastAPI with v2.0 endpoints
 │   └── web/                 # Web interfaces
-│       └── streamlit_app.py # Streamlit UI
+│       ├── streamlit_app.py # v2.0 redesigned UI
+│       └── streamlit_app_v1_backup.py # v1.0 backup
 ├── tests/                   # Test suite
-├── Dockerfile               # Docker configuration
-├── docker-compose.yml       # Docker Compose
-├── requirements.txt         # Core dependencies
-└── pyproject.toml          # Project metadata
+│   ├── test_markitdown_converter.py  # MarkItDown tests
+│   └── test_*.py            # Legacy converter tests
+├── requirements.txt         # Core dependencies (MarkItDown)
+├── requirements-markitdown.txt  # Optional AI features
+├── requirements-legacy.txt  # Legacy converters (deprecated)
+├── .env.example            # Environment configuration template
+├── Dockerfile              # Docker configuration
+├── docker-compose.yml      # Docker Compose
+└── pyproject.toml         # Project metadata
 ```
+
+### Converter Selection Logic
+
+1. **Use MarkItDown** (default): Handles all 13+ formats
+2. **Legacy Mode** (optional): Use format-specific converters
+3. **Auto Mode**: Automatically select best converter
 
 ## Performance
 
-| Converter | Speed (per page) | Accuracy | Resource Use | OCR Support |
-|-----------|-----------------|----------|--------------|-------------|
-| PyMuPDF   | 0.12s          | 85-90%   | Low (CPU)    | External    |
-| Marker    | 11.3s          | 95-99%   | High (GPU)   | Built-in    |
-| Tesseract | 3s             | 70-85%   | Medium (CPU) | Primary     |
+### v2.0 Performance (MarkItDown)
+
+| Format | Typical Speed | Notes |
+|--------|--------------|-------|
+| PDF | 0.5-2s/page | Fast, built-in OCR support |
+| DOCX | <1s | Excellent formatting preservation |
+| XLSX | <1s | Multi-sheet support |
+| PPTX | <2s | Full presentation conversion |
+| HTML | <1s | External image handling |
+| Images | <2s | Optional OCR + AI descriptions |
+| Audio | Varies | Depends on audio length |
+
+### Legacy Converters (Deprecated)
+
+| Converter | Speed (per page) | Accuracy | Resource Use |
+|-----------|-----------------|----------|--------------|
+| PyMuPDF   | 0.12s          | 85-90%   | Low (CPU)    |
+| Tesseract | 3s             | 70-85%   | Medium (CPU) |
+
+## Migration from v1.0 to v2.0
+
+### Breaking Changes
+
+1. **Default Converter**: Now uses MarkItDown instead of PyMuPDF
+2. **Configuration**: New options for LLM and Azure features
+3. **Streamlit UI**: Completely redesigned interface
+4. **API Endpoints**: New `/formats` endpoint, updated request models
+
+### Migration Steps
+
+1. **Update Dependencies**:
+   ```bash
+   pip install -r requirements.txt  # MarkItDown is now core
+   ```
+
+2. **Update Configuration**:
+   ```python
+   # Old (v1.0)
+   config = Config(strategy=ConversionStrategy.FAST)
+
+   # New (v2.0)
+   config = Config(
+       use_markitdown=True,  # New default
+       strategy=ConversionStrategy.MARKITDOWN
+   )
+   ```
+
+3. **CLI Changes**:
+   ```bash
+   # Old (v1.0) - still works
+   pdf2md convert document.pdf --strategy fast
+
+   # New (v2.0) - recommended
+   pdf2md convert document.pdf --markitdown
+   pdf2md convert document.pdf --llm-descriptions  # New feature
+   ```
+
+4. **Legacy Mode** (if needed):
+   ```bash
+   # Use legacy converters
+   pip install -r requirements-legacy.txt
+   pdf2md convert document.pdf --legacy --strategy fast
+   ```
 
 ## Troubleshooting
 
 ### Common Issues
 
-**1. Import Error: No module named 'pymupdf'**
+**1. MarkItDown Not Available**
 
 ```bash
-pip install pymupdf pymupdf4llm
+pip install markitdown[all]>=0.1.0
 ```
 
-**2. Tesseract not found**
+**2. OpenAI API Key Not Found**
 
-Install Tesseract OCR system package (see OCR section).
+Set environment variable or configure in .env:
+```bash
+export OPENAI_API_KEY=your_key_here
+```
 
-**3. Poor OCR results**
+**3. Azure Credentials Not Found**
 
-- Increase DPI: Add `--ocr-dpi 600` flag
-- Try image preprocessing
-- Ensure correct language pack installed
+Set environment variables or configure in .env:
+```bash
+export AZURE_DOCINTEL_ENDPOINT=https://...
+export AZURE_DOCINTEL_KEY=your_key_here
+```
 
-**4. Tables not detected**
+**4. Audio Transcription Not Working**
 
-- Some PDFs use images for tables
-- Try OCR strategy: `--strategy ocr`
-- Use accurate strategy for complex tables
+Install optional dependencies:
+```bash
+pip install SpeechRecognition pydub
+```
 
-**5. Images too large**
+**5. YouTube Transcripts Not Available**
 
-- Use link mode: `--images link`
-- Reduce image size in config
+Install optional dependency:
+```bash
+pip install youtube-transcript-api
+```
 
-## Contributing
+**6. Legacy Converters Not Available**
 
-Contributions welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
+Install legacy dependencies if needed:
+```bash
+pip install -r requirements-legacy.txt
+```
 
 ## Development
 
@@ -601,13 +589,32 @@ pip install -r requirements-dev.txt
 # Run tests
 pytest
 
-# Format code
+# Run tests with coverage
+pytest --cov=src --cov-report=html
+
+# Format code (line length: 100)
 black src/ tests/
+
+# Lint
 ruff check src/ tests/
+
+# Fix auto-fixable issues
+ruff check --fix src/ tests/
 
 # Type checking
 mypy src/
 ```
+
+## Contributing
+
+Contributions welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes
+4. Add tests
+5. Run tests and linting
+6. Submit a pull request
 
 ## License
 
@@ -615,17 +622,33 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Credits
 
-Built with:
-- [PyMuPDF](https://pymupdf.readthedocs.io/) - Fast PDF processing
-- [pymupdf4llm](https://github.com/pymupdf/pymupdf4llm) - LLM-ready markdown conversion
-- [pytesseract](https://github.com/madmaze/pytesseract) - OCR support
+### v2.0 Core Technology
+
+- [Microsoft MarkItDown](https://github.com/microsoft/markitdown) - Universal document converter
+- [OpenAI](https://openai.com/) - AI-powered image descriptions
+- [Azure Document Intelligence](https://azure.microsoft.com/en-us/products/ai-services/ai-document-intelligence) - High-accuracy PDF conversion
+
+### Supporting Libraries
+
 - [Typer](https://typer.tiangolo.com/) - CLI framework
 - [FastAPI](https://fastapi.tiangolo.com/) - REST API
 - [Streamlit](https://streamlit.io/) - Web UI
+- [Pydantic](https://pydantic.dev/) - Data validation
+
+### Legacy Converters (Deprecated)
+
+- [PyMuPDF](https://pymupdf.readthedocs.io/) - PDF processing
+- [pytesseract](https://github.com/madmaze/pytesseract) - OCR
+- [markdownify](https://github.com/matthewwithanm/python-markdownify) - HTML conversion
+- [pypandoc](https://github.com/JessicaTegner/pypandoc) - DOCX conversion
+- [pandas](https://pandas.pydata.org/) - XLSX table conversion
 
 ## Acknowledgments
 
-Special thanks to the PyMuPDF team for their excellent PDF library and pymupdf4llm conversion tool.
+Special thanks to:
+- Microsoft for the excellent MarkItDown library
+- The open-source community for all the supporting libraries
+- Contributors and users for feedback and improvements
 
 ## Support
 
@@ -636,3 +659,5 @@ Special thanks to the PyMuPDF team for their excellent PDF library and pymupdf4l
 ---
 
 **Made with ❤️ for the open-source community**
+
+**v2.0.0** - Powered by Microsoft MarkItDown
