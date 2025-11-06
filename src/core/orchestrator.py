@@ -7,13 +7,25 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 
 from pdf2markdown.converters.document_converter import DocumentConverter
-from pdf2markdown.converters.ocr_converter import OCRConverter
-from pdf2markdown.converters.pymupdf_converter import PyMuPDFConverter
 from pdf2markdown.core.config import Config, ConversionStrategy
 from pdf2markdown.core.file_detector import FileTypeDetector
 from pdf2markdown.core.models import ConversionResult
 
-# Import format-specific converters if available
+# Import MarkItDown converter (v2.0 primary converter)
+try:
+    from pdf2markdown.converters.markitdown_converter import MarkItDownConverter
+    MARKITDOWN_AVAILABLE = True
+except ImportError:
+    MARKITDOWN_AVAILABLE = False
+
+# Import legacy format-specific converters (optional fallback)
+try:
+    from pdf2markdown.converters.ocr_converter import OCRConverter
+    from pdf2markdown.converters.pymupdf_converter import PyMuPDFConverter
+    LEGACY_PDF_AVAILABLE = True
+except ImportError:
+    LEGACY_PDF_AVAILABLE = False
+
 try:
     from pdf2markdown.converters.html_converter import HTMLConverter
     HTML_AVAILABLE = True
@@ -37,14 +49,21 @@ console = Console()
 
 class ConversionOrchestrator:
     """
-    Orchestrates document to Markdown conversion with intelligent converter selection.
+    Orchestrates multi-format document to Markdown conversion (v2.0).
 
     The orchestrator:
-    - Detects file type (PDF, HTML, DOCX, XLSX)
+    - Detects file type (PDF, HTML, DOCX, XLSX, PPTX, audio, YouTube, EPub, etc.)
     - Analyzes the document to determine the best conversion strategy
-    - Selects the appropriate converter
-    - Handles fallback scenarios
+    - Selects the appropriate converter (MarkItDown primary, legacy fallback)
+    - Handles LLM and Azure Document Intelligence integration
     - Validates output quality
+
+    v2.0 Changes:
+    - Uses Microsoft MarkItDown as primary converter for all formats
+    - Supports 13+ file formats (PDF, DOCX, XLSX, PPTX, HTML, audio, YouTube, EPub, etc.)
+    - Optional LLM-powered image descriptions
+    - Optional Azure Document Intelligence for high-accuracy PDFs
+    - Legacy converters available as fallback when use_markitdown=False
     """
 
     def __init__(self, config: Optional[Config] = None):
@@ -59,41 +78,117 @@ class ConversionOrchestrator:
 
         # Converter registry: {(file_type, strategy): converter}
         self._converters: Dict[Tuple[str, str], DocumentConverter] = {}
+        self._markitdown_converter: Optional[DocumentConverter] = None
         self._initialize_converters()
 
     def _initialize_converters(self) -> None:
-        """Initialize all available converters."""
-        # PDF converters
-        pymupdf_converter = PyMuPDFConverter(self.config)
-        if pymupdf_converter.is_available():
-            self._converters[('pdf', ConversionStrategy.FAST.value)] = pymupdf_converter
+        """Initialize all available converters (MarkItDown primary, legacy fallback)."""
 
-        ocr_converter = OCRConverter(self.config)
-        if ocr_converter.is_available():
-            self._converters[('pdf', ConversionStrategy.OCR.value)] = ocr_converter
+        # MarkItDown converter (v2.0 primary converter for ALL formats)
+        if MARKITDOWN_AVAILABLE and self.config.use_markitdown:
+            markitdown_converter = MarkItDownConverter(self.config)
+            if markitdown_converter.is_available():
+                self._markitdown_converter = markitdown_converter
 
-        # TODO: Add Marker converter when implementing accurate strategy
-        # marker_converter = MarkerConverter(self.config)
-        # if marker_converter.is_available():
-        #     self._converters[('pdf', ConversionStrategy.ACCURATE.value)] = marker_converter
+                # Register MarkItDown for all supported formats
+                for ext in markitdown_converter.get_supported_extensions():
+                    # Map extension to file type
+                    file_type = self._ext_to_filetype(ext)
+                    if file_type:
+                        # Register for all strategies
+                        self._converters[(file_type, ConversionStrategy.MARKITDOWN.value)] = markitdown_converter
+                        self._converters[(file_type, ConversionStrategy.FAST.value)] = markitdown_converter
+                        self._converters[(file_type, ConversionStrategy.AUTO.value)] = markitdown_converter
 
-        # HTML converter
+                        # For PDFs with Azure, register as accurate
+                        if file_type == 'pdf' and self.config.azure_enabled:
+                            self._converters[(file_type, ConversionStrategy.ACCURATE.value)] = markitdown_converter
+
+                console.print("[green]✓ MarkItDown converter initialized[/green]")
+            else:
+                console.print("[yellow]⚠ MarkItDown not available, using legacy converters[/yellow]")
+
+        # Legacy converters (optional fallback when use_markitdown=False)
+        if not self.config.use_markitdown or not self._markitdown_converter:
+            self._initialize_legacy_converters()
+
+    def _initialize_legacy_converters(self) -> None:
+        """Initialize legacy format-specific converters (fallback)."""
+        console.print("[cyan]Initializing legacy converters...[/cyan]")
+
+        # Legacy PDF converters
+        if LEGACY_PDF_AVAILABLE:
+            pymupdf_converter = PyMuPDFConverter(self.config)
+            if pymupdf_converter.is_available():
+                self._converters[('pdf', ConversionStrategy.FAST.value)] = pymupdf_converter
+                console.print("[green]✓ PyMuPDF converter available[/green]")
+
+            ocr_converter = OCRConverter(self.config)
+            if ocr_converter.is_available():
+                self._converters[('pdf', ConversionStrategy.OCR.value)] = ocr_converter
+                console.print("[green]✓ OCR converter available[/green]")
+
+        # Legacy HTML converter
         if HTML_AVAILABLE:
             html_converter = HTMLConverter(self.config)
             if html_converter.is_available():
                 self._converters[('html', 'default')] = html_converter
+                self._converters[('html', ConversionStrategy.FAST.value)] = html_converter
+                console.print("[green]✓ HTML converter available[/green]")
 
-        # DOCX converter
+        # Legacy DOCX converter
         if DOCX_AVAILABLE:
             docx_converter = DOCXConverter(self.config)
             if docx_converter.is_available():
                 self._converters[('docx', 'default')] = docx_converter
+                self._converters[('docx', ConversionStrategy.FAST.value)] = docx_converter
+                console.print("[green]✓ DOCX converter available[/green]")
 
-        # XLSX converter
+        # Legacy XLSX converter
         if XLSX_AVAILABLE:
             xlsx_converter = XLSXConverter(self.config)
             if xlsx_converter.is_available():
                 self._converters[('xlsx', 'default')] = xlsx_converter
+                self._converters[('xlsx', ConversionStrategy.FAST.value)] = xlsx_converter
+                console.print("[green]✓ XLSX converter available[/green]")
+
+    def _ext_to_filetype(self, ext: str) -> Optional[str]:
+        """
+        Map file extension to file type.
+
+        Args:
+            ext: File extension (e.g., '.pdf', '.docx')
+
+        Returns:
+            File type string or None
+        """
+        mapping = {
+            '.pdf': 'pdf',
+            '.html': 'html',
+            '.htm': 'html',
+            '.docx': 'docx',
+            '.doc': 'docx',
+            '.xlsx': 'xlsx',
+            '.xls': 'xlsx',
+            '.pptx': 'pptx',
+            '.ppt': 'pptx',
+            '.jpg': 'image',
+            '.jpeg': 'image',
+            '.png': 'image',
+            '.gif': 'image',
+            '.bmp': 'image',
+            '.tiff': 'image',
+            '.wav': 'audio',
+            '.mp3': 'audio',
+            '.m4a': 'audio',
+            '.epub': 'epub',
+            '.json': 'json',
+            '.xml': 'xml',
+            '.csv': 'csv',
+            '.zip': 'zip',
+            '.msg': 'msg',
+        }
+        return mapping.get(ext)
 
     def convert(
         self,

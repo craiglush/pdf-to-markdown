@@ -12,9 +12,10 @@ class ConversionStrategy(str, Enum):
     """Conversion strategy selection."""
 
     AUTO = "auto"  # Automatically detect best strategy
-    FAST = "fast"  # Use PyMuPDF4LLM (fastest)
-    ACCURATE = "accurate"  # Use Marker (highest accuracy, slow)
+    FAST = "fast"  # Use PyMuPDF4LLM or MarkItDown (fastest)
+    ACCURATE = "accurate"  # Use Marker or Azure Document Intelligence (highest accuracy, slow)
     OCR = "ocr"  # Force OCR for scanned documents
+    MARKITDOWN = "markitdown"  # Use MarkItDown for all formats
 
 
 class ImageMode(str, Enum):
@@ -35,7 +36,43 @@ class TableFormat(str, Enum):
 
 
 class Config(BaseModel):
-    """Configuration for document conversion (PDF, HTML, DOCX, XLSX)."""
+    """Configuration for document conversion (PDF, HTML, DOCX, XLSX, PPTX, audio, etc.)."""
+
+    # MarkItDown settings (v2.0 core converter)
+    use_markitdown: bool = Field(
+        default=True,
+        description="Use MarkItDown as primary converter (recommended)"
+    )
+    rich_conversion: bool = Field(
+        default=False,
+        description="Extract detailed metadata using format-specific libraries (slower)"
+    )
+
+    # LLM-powered features
+    llm_enabled: bool = Field(
+        default=False,
+        description="Enable LLM-powered image descriptions (requires OpenAI API key)"
+    )
+    llm_model: str = Field(
+        default="gpt-4o",
+        description="OpenAI model for image descriptions (gpt-4o, gpt-4-turbo, etc.)"
+    )
+    llm_prompt: Optional[str] = Field(
+        default=None,
+        description="Custom prompt for LLM image descriptions"
+    )
+
+    # Azure Document Intelligence
+    azure_enabled: bool = Field(
+        default=False,
+        description="Use Azure Document Intelligence for high-accuracy PDF conversion"
+    )
+
+    # MarkItDown plugins
+    markitdown_enable_plugins: bool = Field(
+        default=False,
+        description="Enable 3rd-party MarkItDown plugins (disabled by default for security)"
+    )
 
     # Strategy selection
     strategy: ConversionStrategy = Field(
@@ -234,17 +271,37 @@ class AppSettings(BaseSettings):
     temp_dir: Path = Field(default=Path("/tmp/pdf2md"))
     cache_dir: Path = Field(default=Path.home() / ".cache" / "pdf2md")
 
+    # MarkItDown settings
+    use_markitdown: bool = Field(default=True)
+    rich_conversion: bool = Field(default=False)
+    llm_enabled: bool = Field(default=False)
+    llm_model: str = Field(default="gpt-4o")
+    azure_enabled: bool = Field(default=False)
+    markitdown_enable_plugins: bool = Field(default=False)
+
+    # Conversion settings
+    strategy: str = Field(default="auto")
+    image_mode: str = Field(default="embed")
+    table_format: str = Field(default="github")
+    batch_workers: int = Field(default=4)
+
+    # Cache settings
+    cache_enabled: bool = Field(default=False)
+
     # API settings (for web interface)
     api_host: str = Field(default="127.0.0.1")
     api_port: int = Field(default=8000)
     api_workers: int = Field(default=4)
     api_max_file_size: int = Field(default=50 * 1024 * 1024)  # 50MB
 
+    # Streamlit settings
+    streamlit_port: int = Field(default=8501)
+
     # Celery settings (for async processing)
     celery_broker_url: str = Field(default="redis://localhost:6379/0")
     celery_result_backend: str = Field(default="redis://localhost:6379/0")
 
-    # Model settings
+    # Model settings (legacy)
     marker_model_dir: Optional[Path] = Field(
         default=None,
         description="Directory for Marker model files"

@@ -1,12 +1,21 @@
-# Core dependencies for basic PDF to Markdown conversion
+# Core dependencies for multi-format document to Markdown conversion
+
+# MarkItDown - Core conversion engine (Microsoft)
+markitdown[all]>=0.1.0
+
+# Supporting libraries kept for optional rich metadata extraction
 pymupdf>=1.24.0
 pymupdf4llm>=0.0.7
 Pillow>=10.0.0
 pdf2image>=1.16.0
 pytesseract>=0.3.10
+
+# CLI and configuration
 typer[all]>=0.9.0
 rich>=13.0.0
 pydantic>=2.0.0
 pydantic-settings>=2.0.0
+
+# Utilities
 python-magic>=0.4.27
 pathvalidate>=3.0.0

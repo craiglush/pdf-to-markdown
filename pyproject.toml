@@ -4,15 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pdf2markdown"
-version = "0.1.0"
-description = "High-fidelity PDF to Markdown converter with OCR support"
+version = "2.0.0"
+description = "High-fidelity multi-format document to Markdown converter powered by Microsoft MarkItDown"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
 authors = [
     {name = "PDF2MD Team"}
 ]
-keywords = ["pdf", "markdown", "converter", "ocr", "tables"]
+keywords = ["pdf", "markdown", "converter", "ocr", "tables", "markitdown", "pptx", "audio", "youtube", "epub"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -25,15 +25,14 @@ classifiers = [
 ]
 
 dependencies = [
-    # Core conversion libraries
+    # Core conversion engine - Microsoft MarkItDown
+    "markitdown[all]>=0.1.0",
+
+    # Supporting libraries for optional rich metadata extraction
     "pymupdf>=1.24.0",
     "pymupdf4llm>=0.0.7",
-
-    # Image processing
     "Pillow>=10.0.0",
     "pdf2image>=1.16.0",
-
-    # OCR support
     "pytesseract>=0.3.10",
 
     # CLI interface
@@ -50,10 +49,31 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# High-accuracy converter (optional, large download)
-accurate = [
-    "marker-pdf>=0.2.0",
-    "torch>=2.0.0",
+# MarkItDown advanced features
+llm = [
+    "openai>=1.0.0",
+]
+
+azure = [
+    "azure-ai-formrecognizer>=3.3.0",
+    "azure-core>=1.29.0",
+]
+
+# Additional format support
+audio = [
+    "SpeechRecognition>=3.10.0",
+    "pydub>=0.25.1",
+]
+
+youtube = [
+    "youtube-transcript-api>=0.6.0",
+]
+
+# Rich metadata extraction (optional, keeps existing converters)
+rich-metadata = [
+    "python-docx>=1.1.0",
+    "openpyxl>=3.1.0",
+    "pandas>=2.0.0",
 ]
 
 # Web interfaces
@@ -82,7 +102,7 @@ dev = [
     "pre-commit>=3.5.0",
 ]
 
-# Format-specific dependencies
+# Legacy format-specific dependencies (kept for backward compatibility)
 html = [
     "markdownify>=0.11.6",
     "beautifulsoup4>=4.12.0",
@@ -102,13 +122,17 @@ xlsx = [
 ]
 
 # Convenience bundles
+markitdown-full = [
+    "pdf2markdown[llm,azure,audio,youtube,rich-metadata]"
+]
+
 formats = [
     "pdf2markdown[html,docx,xlsx]"
 ]
 
 # All optional dependencies
 all = [
-    "pdf2markdown[accurate,web,async,dev,formats]"
+    "pdf2markdown[markitdown-full,web,async,dev,formats]"
 ]
 
 [project.scripts]

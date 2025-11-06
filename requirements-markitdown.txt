@@ -1,0 +1,13 @@
+# Optional dependencies for advanced MarkItDown features
+
+# LLM-powered image descriptions (requires OpenAI API key)
+openai>=1.0.0
+
+# Azure Document Intelligence for high-accuracy PDF conversion
+azure-ai-formrecognizer>=3.3.0
+azure-core>=1.29.0
+
+# Additional format support
+youtube-transcript-api>=0.6.0  # YouTube transcription
+SpeechRecognition>=3.10.0      # Audio transcription
+pydub>=0.25.1                  # Audio processing

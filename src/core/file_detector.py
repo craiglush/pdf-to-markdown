@@ -3,33 +3,102 @@
 from pathlib import Path
 from typing import Optional
 
-# File extension to type mapping
+# File extension to type mapping (v2.0 - expanded for MarkItDown support)
 EXTENSION_MAP = {
+    # Documents
     '.pdf': 'pdf',
-    '.html': 'html',
-    '.htm': 'html',
     '.docx': 'docx',
     '.doc': 'doc',  # Legacy Word format
     '.xlsx': 'xlsx',
     '.xls': 'xls',  # Legacy Excel format
+    '.pptx': 'pptx',
+    '.ppt': 'ppt',  # Legacy PowerPoint format
+    # Web
+    '.html': 'html',
+    '.htm': 'html',
+    # Images
+    '.jpg': 'image',
+    '.jpeg': 'image',
+    '.png': 'image',
+    '.gif': 'image',
+    '.bmp': 'image',
+    '.tiff': 'image',
+    '.tif': 'image',
+    '.webp': 'image',
+    # Audio
+    '.wav': 'audio',
+    '.mp3': 'audio',
+    '.m4a': 'audio',
+    '.flac': 'audio',
+    '.ogg': 'audio',
+    # E-books
+    '.epub': 'epub',
+    # Data formats
+    '.json': 'json',
+    '.xml': 'xml',
+    '.csv': 'csv',
+    # Archives
+    '.zip': 'zip',
+    # Email
+    '.msg': 'msg',
 }
 
-# MIME type to file type mapping
+# MIME type to file type mapping (v2.0 - expanded)
 MIME_MAP = {
+    # Documents
     'application/pdf': 'pdf',
-    'text/html': 'html',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
     'application/msword': 'doc',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
     'application/vnd.ms-excel': 'xls',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+    'application/vnd.ms-powerpoint': 'ppt',
+    # Web
+    'text/html': 'html',
+    # Images
+    'image/jpeg': 'image',
+    'image/png': 'image',
+    'image/gif': 'image',
+    'image/bmp': 'image',
+    'image/tiff': 'image',
+    'image/webp': 'image',
+    # Audio
+    'audio/wav': 'audio',
+    'audio/mpeg': 'audio',
+    'audio/mp4': 'audio',
+    'audio/flac': 'audio',
+    'audio/ogg': 'audio',
+    # E-books
+    'application/epub+zip': 'epub',
+    # Data formats
+    'application/json': 'json',
+    'application/xml': 'xml',
+    'text/xml': 'xml',
+    'text/csv': 'csv',
+    # Archives
+    'application/zip': 'zip',
+    # Email
+    'application/vnd.ms-outlook': 'msg',
 }
 
-# Magic bytes signatures for file types
+# Magic bytes signatures for file types (v2.0 - expanded)
 MAGIC_SIGNATURES = {
     'pdf': [b'%PDF-'],
     'html': [b'<!DOCTYPE', b'<html', b'<HTML'],
     'docx': [b'PK\x03\x04'],  # ZIP signature (DOCX is ZIP-based)
     'xlsx': [b'PK\x03\x04'],  # ZIP signature (XLSX is ZIP-based)
+    'pptx': [b'PK\x03\x04'],  # ZIP signature (PPTX is ZIP-based)
+    'epub': [b'PK\x03\x04'],  # ZIP signature (EPUB is ZIP-based)
+    'zip': [b'PK\x03\x04'],  # ZIP signature
+    'png': [b'\x89PNG\r\n\x1a\n'],
+    'jpg': [b'\xff\xd8\xff'],
+    'gif': [b'GIF87a', b'GIF89a'],
+    'bmp': [b'BM'],
+    'tiff': [b'II*\x00', b'MM\x00*'],
+    'wav': [b'RIFF'],
+    'mp3': [b'\xff\xfb', b'\xff\xf3', b'\xff\xf2', b'ID3'],
+    'json': [b'{', b'['],  # JSON typically starts with { or [
+    'xml': [b'<?xml', b'<'],  # XML starts with <?xml or <
 }
 
 
@@ -171,13 +240,13 @@ class FileTypeDetector:
 
     def _detect_office_format(self, file_path: Path) -> str:
         """
-        Distinguish between DOCX and XLSX (both are ZIP files).
+        Distinguish between Office formats (DOCX, XLSX, PPTX, EPUB - all are ZIP files).
 
         Args:
             file_path: Path to the ZIP-based Office file
 
         Returns:
-            'docx' or 'xlsx'
+            'docx', 'xlsx', 'pptx', 'epub', or 'zip'
 
         Raises:
             ValueError: If cannot determine Office format
@@ -196,6 +265,19 @@ class FileTypeDetector:
                 if any('xl/' in f for f in file_list):
                     return 'xlsx'
 
+                # PPTX contains ppt/ directory
+                if any('ppt/' in f for f in file_list):
+                    return 'pptx'
+
+                # EPUB contains mimetype file with specific content
+                if 'mimetype' in file_list:
+                    try:
+                        mimetype = zip_file.read('mimetype').decode('utf-8').strip()
+                        if mimetype == 'application/epub+zip':
+                            return 'epub'
+                    except Exception:
+                        pass
+
                 # Check for content types
                 if '[Content_Types].xml' in file_list:
                     content_types = zip_file.read('[Content_Types].xml').decode('utf-8')
@@ -203,12 +285,14 @@ class FileTypeDetector:
                         return 'docx'
                     if 'spreadsheetml' in content_types:
                         return 'xlsx'
+                    if 'presentationml' in content_types:
+                        return 'pptx'
 
         except Exception:
             pass
 
-        # Default to DOCX if unclear (more common)
-        return 'docx'
+        # Default to regular ZIP if unclear
+        return 'zip'
 
     def _detect_by_content(self, file_path: Path) -> Optional[str]:
         """
