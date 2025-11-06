@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # CLI service (base - MarkItDown only)
   cli:

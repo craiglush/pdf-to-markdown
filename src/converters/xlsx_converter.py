@@ -286,7 +286,7 @@ class XLSXConverter(DocumentConverter):
         metadata = ConversionMetadata(
             title=file_path.stem,
             source_file=str(file_path),
-            file_size_bytes=file_path.stat().st_size,
+            source_size_bytes=file_path.stat().st_size,
             converter_name=self.get_name(),
         )
 

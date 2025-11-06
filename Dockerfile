@@ -88,9 +88,11 @@ FROM base as api
 
 USER root
 
-# Install optional MarkItDown features for API
+# Install web dependencies (FastAPI, uvicorn) and optional MarkItDown features
+COPY requirements-web.txt .
 COPY requirements-markitdown.txt .
-RUN pip install --no-cache-dir -r requirements-markitdown.txt || true
+RUN pip install --no-cache-dir -r requirements-web.txt && \
+    pip install --no-cache-dir -r requirements-markitdown.txt || true
 
 USER appuser
 

@@ -238,7 +238,7 @@ Bob,35,Chicago
             assert result.metadata is not None
             assert result.metadata.converter_name == "MarkItDown Converter (Microsoft)"
             assert result.metadata.source_file == str(tmp_path)
-            assert result.metadata.file_size_bytes > 0
+            assert result.metadata.source_size_bytes > 0
             assert result.metadata.conversion_time_seconds >= 0
             assert result.metadata.total_words > 0
             assert result.metadata.timestamp is not None

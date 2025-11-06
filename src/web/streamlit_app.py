@@ -82,6 +82,9 @@ def main() -> None:
         f"Convert 13+ file formats to Markdown*"
     )
 
+    # Render sidebar configuration once (prevents duplicate widget IDs)
+    config_dict = render_sidebar_config()
+
     # Main tabs
     tab1, tab2, tab3, tab4 = st.tabs(
         [
@@ -94,7 +97,7 @@ def main() -> None:
 
     # Tab 1: Upload & Convert
     with tab1:
-        render_upload_tab()
+        render_upload_tab(config_dict)
 
     # Tab 2: Formats Gallery
     with tab2:
@@ -102,7 +105,7 @@ def main() -> None:
 
     # Tab 3: Batch Processing
     with tab3:
-        render_batch_processing()
+        render_batch_processing(config_dict)
 
     # Tab 4: API Settings
     with tab4:
@@ -130,6 +133,7 @@ def render_sidebar_config() -> dict:
         use_markitdown = st.checkbox(
             "Use MarkItDown (v2.0)",
             value=True,
+            key="sidebar_use_markitdown",
             help="Use Microsoft MarkItDown for all formats (recommended). "
             "Disable to use legacy converters.",
         )
@@ -158,6 +162,7 @@ def render_sidebar_config() -> dict:
             llm_enabled = st.checkbox(
                 "AI Image Descriptions",
                 value=False,
+                key="sidebar_llm_enabled",
                 help="Use OpenAI GPT-4 to generate detailed image descriptions",
             )
 
@@ -180,12 +185,14 @@ def render_sidebar_config() -> dict:
             azure_enabled = st.checkbox(
                 "Azure Document Intelligence",
                 value=False,
+                key="sidebar_azure_enabled",
                 help="Use Azure Document Intelligence for high-accuracy PDF conversion",
             )
 
             rich_conversion = st.checkbox(
                 "Rich Metadata Extraction",
                 value=False,
+                key="sidebar_rich_conversion",
                 help="Extract detailed metadata using format-specific libraries",
             )
 
@@ -198,7 +205,7 @@ def render_sidebar_config() -> dict:
 
         # Image Options
         st.subheader("🖼️ Image Options")
-        extract_images = st.checkbox("Extract Images", value=True)
+        extract_images = st.checkbox("Extract Images", value=True, key="sidebar_extract_images")
 
         image_mode = st.radio(
             "Image Mode",
@@ -211,7 +218,7 @@ def render_sidebar_config() -> dict:
 
         # Table Options
         st.subheader("📊 Table Options")
-        extract_tables = st.checkbox("Extract Tables", value=True)
+        extract_tables = st.checkbox("Extract Tables", value=True, key="sidebar_extract_tables")
 
         table_format = st.selectbox(
             "Table Format",
@@ -228,6 +235,7 @@ def render_sidebar_config() -> dict:
         ocr_enabled = st.checkbox(
             "Force OCR",
             value=False,
+            key="sidebar_ocr_enabled",
             help="Force OCR for scanned documents (legacy converters)",
         )
 
@@ -239,20 +247,20 @@ def render_sidebar_config() -> dict:
 
         # Format-specific options
         with st.expander("📄 PDF Options"):
-            page_breaks = st.checkbox("Include Page Breaks", value=False)
+            page_breaks = st.checkbox("Include Page Breaks", value=False, key="sidebar_page_breaks")
 
         with st.expander("🌐 HTML Options"):
             html_download_images = st.checkbox(
-                "Download External Images", value=True
+                "Download External Images", value=True, key="sidebar_html_download_images"
             )
             html_base_url = st.text_input(
                 "Base URL", value="", placeholder="https://example.com"
             )
 
         with st.expander("📝 DOCX Options"):
-            docx_include_comments = st.checkbox("Include Comments", value=False)
+            docx_include_comments = st.checkbox("Include Comments", value=False, key="sidebar_docx_include_comments")
             docx_include_headers_footers = st.checkbox(
-                "Include Headers/Footers", value=False
+                "Include Headers/Footers", value=False, key="sidebar_docx_include_headers_footers"
             )
 
         with st.expander("📊 XLSX Options"):
@@ -266,7 +274,7 @@ def render_sidebar_config() -> dict:
                 value="",
                 disabled=(xlsx_mode != "selected"),
             )
-            xlsx_extract_charts = st.checkbox("Extract Charts", value=True)
+            xlsx_extract_charts = st.checkbox("Extract Charts", value=True, key="sidebar_xlsx_extract_charts")
 
         # About section
         st.markdown("---")
@@ -319,10 +327,8 @@ def render_sidebar_config() -> dict:
     }
 
 
-def render_upload_tab() -> None:
+def render_upload_tab(config_dict: dict) -> None:
     """Render the Upload & Convert tab."""
-
-    config_dict = render_sidebar_config()
 
     st.markdown("### 📤 Upload Document")
 
@@ -505,10 +511,8 @@ def render_formats_gallery() -> None:
         )
 
 
-def render_batch_processing() -> None:
+def render_batch_processing(config_dict: dict) -> None:
     """Render the Batch Processing tab."""
-
-    config_dict = render_sidebar_config()
 
     st.markdown("### ⚡ Batch Processing")
     st.markdown("*Convert multiple files at once*")
@@ -548,6 +552,7 @@ def render_batch_processing() -> None:
         parallel = st.checkbox(
             "Parallel Processing",
             value=True,
+            key="batch_parallel",
             help="Process files in parallel (faster)",
         )
 
@@ -822,8 +827,8 @@ def display_results(result: ConversionResult) -> None:
                 "Total Words": result.metadata.total_words,
                 "Total Images": result.metadata.total_images,
                 "Total Tables": result.metadata.total_tables,
-                "File Size": f"{result.metadata.file_size_bytes / 1024:.1f} KB"
-                if result.metadata.file_size_bytes
+                "File Size": f"{result.metadata.source_size_bytes / 1024:.1f} KB"
+                if result.metadata.source_size_bytes
                 else "N/A",
             }
             st.json(stats)
