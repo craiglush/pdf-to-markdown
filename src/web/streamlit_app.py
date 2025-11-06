@@ -202,7 +202,7 @@ def main() -> None:
                 if result:
                     st.session_state['result'] = result
                     st.success("✅ Conversion completed successfully!")
-                    st.rerun()  # Force Streamlit to refresh and display Results section
+                    # Note: Results section will display below (no rerun needed)
 
     # Display results if available
     if 'result' in st.session_state:
@@ -254,13 +254,46 @@ def main() -> None:
             st.subheader("Extracted Images")
 
             if result.images:
+                total_images = len(result.images)
+                st.info(f"📊 Total images extracted: {total_images}")
+
+                # Pagination for large image sets
+                images_per_page = 12
+                if total_images > images_per_page:
+                    # Initialize page number in session state
+                    if 'image_page' not in st.session_state:
+                        st.session_state['image_page'] = 0
+
+                    total_pages = (total_images + images_per_page - 1) // images_per_page
+
+                    # Page navigation
+                    col1, col2, col3 = st.columns([1, 2, 1])
+                    with col1:
+                        if st.button("⬅️ Previous", disabled=st.session_state['image_page'] == 0):
+                            st.session_state['image_page'] -= 1
+                            st.rerun()
+                    with col2:
+                        st.write(f"Page {st.session_state['image_page'] + 1} of {total_pages}")
+                    with col3:
+                        if st.button("Next ➡️", disabled=st.session_state['image_page'] >= total_pages - 1):
+                            st.session_state['image_page'] += 1
+                            st.rerun()
+
+                    # Calculate image range for current page
+                    start_idx = st.session_state['image_page'] * images_per_page
+                    end_idx = min(start_idx + images_per_page, total_images)
+                    images_to_display = result.images[start_idx:end_idx]
+                else:
+                    images_to_display = result.images
+
+                # Display images in grid
                 cols = st.columns(3)
-                for idx, img in enumerate(result.images):
+                for idx, img in enumerate(images_to_display):
                     with cols[idx % 3]:
                         if img.base64_data:
                             # Display image
                             img_data = base64.b64decode(img.base64_data)
-                            st.image(img_data, caption=img.alt_text, use_container_width=True)
+                            st.image(img_data, caption=img.alt_text, width=None)
 
                             # Image info
                             st.caption(
