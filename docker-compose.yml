@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # CLI service
+  cli:
+    build:
+      context: .
+      target: base
+    image: pdf2markdown:cli
+    container_name: pdf2md-cli
+    volumes:
+      - ./input:/input
+      - ./output:/output
+    command: ["pdf2md", "convert", "/input/document.pdf", "-o", "/output/document.md"]
+    profiles:
+      - cli
+
+  # FastAPI REST API
+  api:
+    build:
+      context: .
+      target: api
+    image: pdf2markdown:api
+    container_name: pdf2md-api
+    ports:
+      - "8000:8000"
+    environment:
+      - PDF2MD_DEBUG=false
+      - PDF2MD_LOG_LEVEL=INFO
+    volumes:
+      - ./temp:/tmp/pdf2md
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - api
+
+  # Streamlit Web UI
+  streamlit:
+    build:
+      context: .
+      target: streamlit
+    image: pdf2markdown:streamlit
+    container_name: pdf2md-streamlit
+    ports:
+      - "8501:8501"
+    environment:
+      - PDF2MD_DEBUG=false
+    volumes:
+      - ./temp:/tmp/pdf2md
+    restart: unless-stopped
+    profiles:
+      - web
+
+  # Development environment
+  dev:
+    build:
+      context: .
+      target: development
+    image: pdf2markdown:dev
+    container_name: pdf2md-dev
+    volumes:
+      - .:/app
+      - ./input:/input
+      - ./output:/output
+    command: ["bash"]
+    stdin_open: true
+    tty: true
+    profiles:
+      - dev
+
+networks:
+  default:
+    name: pdf2markdown-network
+
+volumes:
+  temp:
+    driver: local
