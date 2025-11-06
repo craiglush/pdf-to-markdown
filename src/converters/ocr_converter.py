@@ -1,5 +1,14 @@
-"""OCR-based converter for scanned PDFs using pytesseract."""
+"""
+OCR-based converter for scanned PDFs using pytesseract.
 
+.. deprecated:: 2.0.0
+    This converter is deprecated in favor of MarkItDownConverter.
+    MarkItDown has built-in OCR support for images and scanned documents.
+
+    Use MarkItDownConverter for new projects for better OCR integration.
+"""
+
+import warnings
 import hashlib
 import time
 from datetime import datetime
@@ -11,6 +20,14 @@ from pdf2image import convert_from_path
 from PIL import Image
 
 from pdf2markdown.converters.base import PDFConverter
+
+# Deprecation warning
+warnings.warn(
+    "OCRConverter is deprecated as of version 2.0.0. "
+    "Use MarkItDownConverter instead, which has built-in OCR support.",
+    DeprecationWarning,
+    stacklevel=2
+)
 from pdf2markdown.core.config import Config
 from pdf2markdown.core.models import (
     ConversionMetadata,

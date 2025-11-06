@@ -1,5 +1,12 @@
-"""HTML to Markdown converter using markdownify and BeautifulSoup."""
+"""
+HTML to Markdown converter using markdownify and BeautifulSoup.
 
+.. deprecated:: 2.0.0
+    This converter is deprecated in favor of MarkItDownConverter.
+    Use MarkItDownConverter for better HTML support and unified multi-format conversion.
+"""
+
+import warnings
 import base64
 import logging
 import re
@@ -12,6 +19,13 @@ import requests
 from bs4 import BeautifulSoup
 from markdownify import markdownify as md
 from PIL import Image as PILImage
+
+# Deprecation warning
+warnings.warn(
+    "HTMLConverter is deprecated as of version 2.0.0. Use MarkItDownConverter instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 from pdf2markdown.converters.document_converter import DocumentConverter
 from pdf2markdown.core.config import Config, ImageMode

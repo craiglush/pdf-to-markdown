@@ -1,0 +1,28 @@
+# Legacy converter dependencies (deprecated in v2.0)
+# These dependencies are only needed if you set use_markitdown=False
+# and want to use the old format-specific converters
+
+# Legacy PDF converters (PyMuPDF, OCR)
+pymupdf>=1.24.0
+pymupdf4llm>=0.0.7
+pdf2image>=1.16.0
+pytesseract>=0.3.10
+
+# Legacy HTML converter
+markdownify>=0.11.6
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+requests>=2.31.0
+
+# Legacy DOCX converter
+pypandoc>=1.11
+mammoth>=1.6.0
+python-docx>=1.1.0
+
+# Legacy XLSX converter
+pandas>=2.0.0
+openpyxl>=3.1.0
+tabulate>=0.9.0
+
+# Note: MarkItDown (v2.0 default) handles all these formats natively
+# Install with: pip install -r requirements-legacy.txt

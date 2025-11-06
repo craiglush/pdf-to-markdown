@@ -1,5 +1,12 @@
-"""DOCX to Markdown converter using pypandoc and mammoth."""
+"""
+DOCX to Markdown converter using pypandoc and mammoth.
 
+.. deprecated:: 2.0.0
+    This converter is deprecated in favor of MarkItDownConverter.
+    Use MarkItDownConverter for better DOCX support and unified multi-format conversion.
+"""
+
+import warnings
 import io
 import logging
 import re
@@ -10,6 +17,13 @@ from typing import List, Optional
 from PIL import Image as PILImage
 
 from pdf2markdown.converters.document_converter import DocumentConverter
+
+# Deprecation warning
+warnings.warn(
+    "DOCXConverter is deprecated as of version 2.0.0. Use MarkItDownConverter instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 from pdf2markdown.core.config import Config
 from pdf2markdown.core.models import (
     ConversionMetadata,

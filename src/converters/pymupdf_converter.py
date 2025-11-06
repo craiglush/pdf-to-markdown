@@ -1,5 +1,18 @@
-"""PyMuPDF-based fast PDF to Markdown converter."""
+"""
+PyMuPDF-based fast PDF to Markdown converter.
 
+.. deprecated:: 2.0.0
+    This converter is deprecated in favor of MarkItDownConverter.
+    It remains available as a legacy fallback when use_markitdown=False.
+
+    Use MarkItDownConverter for new projects, which supports:
+    - All PDF features plus 13+ additional formats
+    - Optional LLM-powered image descriptions
+    - Optional Azure Document Intelligence integration
+    - Better maintained by Microsoft
+"""
+
+import warnings
 import base64
 import hashlib
 import time
@@ -10,6 +23,14 @@ from typing import List, Optional, Tuple
 import pymupdf as fitz
 
 from pdf2markdown.converters.base import PDFConverter
+
+# Deprecation warning
+warnings.warn(
+    "PyMuPDFConverter is deprecated as of version 2.0.0. "
+    "Use MarkItDownConverter instead for better format support and features.",
+    DeprecationWarning,
+    stacklevel=2
+)
 from pdf2markdown.core.config import Config, ImageMode
 from pdf2markdown.core.models import (
     ConversionMetadata,

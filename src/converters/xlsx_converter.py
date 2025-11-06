@@ -1,11 +1,25 @@
-"""XLSX (Excel spreadsheet) to Markdown converter."""
+"""
+XLSX (Excel spreadsheet) to Markdown converter.
 
+.. deprecated:: 2.0.0
+    This converter is deprecated in favor of MarkItDownConverter.
+    Use MarkItDownConverter for better XLSX support and unified multi-format conversion.
+"""
+
+import warnings
 import base64
 import io
 import logging
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional, Tuple
+
+# Deprecation warning
+warnings.warn(
+    "XLSXConverter is deprecated as of version 2.0.0. Use MarkItDownConverter instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 try:
     import pandas as pd
