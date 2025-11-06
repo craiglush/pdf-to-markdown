@@ -5,6 +5,66 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2025-01-06
+
+### 🚀 Major Release - Complete Rewrite
+
+**Breaking Changes:** This is a major release with breaking changes. See Migration Guide in README.md.
+
+### Added
+
+#### Core Features
+- **Microsoft MarkItDown Integration**: Complete rewrite using MarkItDown as primary converter
+- **13+ Format Support**: PDF, DOCX, XLSX, PPTX, HTML, XML, JSON, CSV, JPG, PNG, GIF, BMP, WAV, MP3, M4A, EPub, ZIP, MSG
+- **AI-Powered Image Descriptions**: Optional OpenAI GPT-4 integration for intelligent image descriptions
+- **Azure Document Intelligence**: High-accuracy PDF conversion using Azure AI services
+- **Audio Transcription**: Convert audio files (WAV, MP3, M4A) to text with speech-to-text
+- **YouTube Support**: Extract video transcripts directly from YouTube URLs
+- **E-book Support**: Convert EPub books to Markdown
+- **Rich Metadata Extraction**: Optional detailed metadata extraction using format-specific libraries
+
+#### Performance Optimizations (v2.0)
+- **Result Caching**: File-based caching system for repeated conversions with configurable expiration
+- **Performance Profiling**: Built-in profiling utilities for timing and optimization
+- **Cache Management**: Automatic cleanup of expired entries, statistics, and management utilities
+
+#### User Interface
+- **Redesigned Streamlit UI**: Complete v2.0 redesign with 4 main tabs (Upload, Formats Gallery, Batch, API Settings)
+- **Enhanced Features**: YouTube URL input, batch processing with progress, API credentials management
+
+#### API & CLI
+- **Updated CLI**: New options for `--llm-descriptions`, `--azure`, `--rich-metadata`, `--enable-cache`
+- **Updated FastAPI**: New `/formats` endpoint, MarkItDown request parameters, AI configuration options
+
+#### Docker & Deployment
+- **Multi-Stage Dockerfile**: Optimized stages (base, full, development, api, streamlit)
+- **Updated docker-compose**: v2.0 services with environment variable support for API keys
+
+#### Documentation & Testing
+- **Comprehensive README**: v2.0 documentation with migration guide and AI features
+- **MarkItDown Test Suite**: Tests for new converter covering all formats
+- **Updated CLAUDE.md**: v2.0 architecture and development guide
+
+### Changed
+- **Default Converter**: MarkItDown now default instead of PyMuPDF
+- **Configuration System**: New options for LLM, Azure, caching, and profiling
+- **File Type Detection**: Extended to support 13+ formats
+
+### Deprecated
+- **Legacy Converters**: PyMuPDFConverter, OCRConverter, HTMLConverter, DOCXConverter, XLSXConverter
+- All legacy converters moved to `requirements-legacy.txt` (still functional but will be removed in v3.0)
+
+### Fixed
+- Improved error handling for unsupported formats
+- Better handling of malformed documents
+- Fixed image extraction edge cases
+- Improved table detection and formatting
+
+### Security
+- API key management via environment variables
+- Secure cache file handling
+- Input validation for all file formats
+
 ## [0.1.0] - 2025-01-06
 
 ### Added
